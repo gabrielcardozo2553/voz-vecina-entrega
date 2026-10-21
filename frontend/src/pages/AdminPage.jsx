@@ -32,6 +32,7 @@ function AdminPage() {
   const [reporteAEliminar, setReporteAEliminar] = useState(null);
   const [vecinoAVer, setVecinoAVer] = useState(null);
   const { toast, mostrarToast } = useToast();
+  const [exportando, setExportando] = useState('');
 
   const hayModal = Boolean(reporteAEliminar || vecinoAVer);
 
@@ -262,7 +263,6 @@ function AdminPage() {
   ).sort((a, b) => b[1] - a[1]);
   const maximoCategoria = conteoPorCategoria.length ? conteoPorCategoria[0][1] : 1;
 
-  const [exportando, setExportando] = useState('');
   const exportar = async (tipo) => {
     setExportando(tipo);
     try {
