@@ -9,6 +9,7 @@ import { Trash2, Info, Eye, Search, Copy, X, RefreshCw, MessageCircle, FileSprea
 import { iconoCategoria, colorCategoria, etiquetaCategoria } from '../utils/categorias';
 import { ESTADOS_TEXTO } from '../utils/estados';
 import { detectarDuplicados } from '../utils/duplicados';
+import { filasResumen } from '../utils/resumenExcel';
 import { prioridadDe, PRIORIDAD_TEXTO, PRIORIDAD_ORDEN, tiempoMedioDeRespuesta, textoDuracion } from '../utils/prioridad';
 import Spinner from '../components/Spinner';
 import PantallaEstado from '../components/PantallaEstado';
@@ -268,7 +269,7 @@ function AdminPage() {
 
   const exportarExcel = () => {
     const datosParaExportar = reportesFiltrados.map(r => ({
-      Categoría: r.categoria,
+      Categoría: etiquetaCategoria(r),
       Dirección: r.direccion,
       Descripción: r.descripcion,
       Prioridad: prioridadDe(r) ? PRIORIDAD_TEXTO[prioridadDe(r)] : '',
@@ -278,7 +279,16 @@ function AdminPage() {
     }));
 
     const hoja = XLSX.utils.json_to_sheet(datosParaExportar);
+    hoja['!cols'] = [{ wch: 22 }, { wch: 32 }, { wch: 60 }, { wch: 12 }, { wch: 20 }, { wch: 14 }, { wch: 12 }];
+
+    const descripcionFiltros = reportesFiltrados.length === reportes.length
+      ? 'Incluye todos los reportes'
+      : `Incluye ${reportesFiltrados.length} de ${reportes.length} reportes (según los filtros aplicados)`;
+    const hojaResumen = XLSX.utils.aoa_to_sheet(filasResumen(reportesFiltrados, descripcionFiltros));
+    hojaResumen['!cols'] = [{ wch: 38 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+
     const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hojaResumen, 'Resumen');
     XLSX.utils.book_append_sheet(libro, hoja, 'Reportes');
 
     const excelBuffer = XLSX.write(libro, { bookType: 'xlsx', type: 'array' });
