@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/pages/AdminPage.css';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { Trash2, Info, Eye, Search, Copy, X, RefreshCw, MessageCircle, FileSpreadsheet, FileText } from 'lucide-react';
 import { iconoCategoria, colorCategoria, etiquetaCategoria } from '../utils/categorias';
 import { ESTADOS_TEXTO } from '../utils/estados';
 import { detectarDuplicados } from '../utils/duplicados';
-import { filasResumen, datosResumen, ENCABEZADOS_RESUMEN } from '../utils/resumenExcel';
 import { prioridadDe, PRIORIDAD_TEXTO, PRIORIDAD_ORDEN, tiempoMedioDeRespuesta, textoDuracion } from '../utils/prioridad';
 import Spinner from '../components/Spinner';
 import PantallaEstado from '../components/PantallaEstado';
@@ -267,114 +262,22 @@ function AdminPage() {
   ).sort((a, b) => b[1] - a[1]);
   const maximoCategoria = conteoPorCategoria.length ? conteoPorCategoria[0][1] : 1;
 
-  const exportarExcel = () => {
-    const datosParaExportar = reportesFiltrados.map(r => ({
-      Categoría: etiquetaCategoria(r),
-      Dirección: r.direccion,
-      Descripción: r.descripcion,
-      Prioridad: prioridadDe(r) ? PRIORIDAD_TEXTO[prioridadDe(r)] : '',
-      Responsable: r.responsable || '',
-      Estado: estadoTexto[r.estado],
-      Fecha: new Date(r.fecha_creacion).toLocaleDateString('es-AR')
-    }));
-
-    const hoja = XLSX.utils.json_to_sheet(datosParaExportar);
-    hoja['!cols'] = [{ wch: 22 }, { wch: 32 }, { wch: 60 }, { wch: 12 }, { wch: 20 }, { wch: 14 }, { wch: 12 }];
-
-    const descripcionFiltros = reportesFiltrados.length === reportes.length
-      ? 'Incluye todos los reportes'
-      : `Incluye ${reportesFiltrados.length} de ${reportes.length} reportes (según los filtros aplicados)`;
-    const hojaResumen = XLSX.utils.aoa_to_sheet(filasResumen(reportesFiltrados, descripcionFiltros));
-    hojaResumen['!cols'] = [{ wch: 38 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
-    // Los porcentajes se guardan como número con formato %, así quedan alineados con el resto.
-    Object.values(hojaResumen).forEach((celda) => {
-      if (celda && typeof celda.v === 'string' && /^\d+%$/.test(celda.v)) {
-        celda.v = parseInt(celda.v, 10) / 100;
-        celda.t = 'n';
-        celda.z = '0%';
-        delete celda.w;
-      }
-    });
-
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hojaResumen, 'Resumen');
-    XLSX.utils.book_append_sheet(libro, hoja, 'Reportes');
-
-    const excelBuffer = XLSX.write(libro, { bookType: 'xlsx', type: 'array' });
-    const archivo = new Blob([excelBuffer], { type: 'application/octet-stream' });
-    saveAs(archivo, `reportes_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  };
-
-  const exportarPDF = () => {
-    const doc = new jsPDF();
-    const azul = [13, 92, 107];
-    const filtrado = reportesFiltrados.length !== reportes.length;
-    const resumen = datosResumen(reportesFiltrados);
-
-    doc.setFontSize(16);
-    doc.text('Reportes Vecinales - Resumen', 14, 16);
-    doc.setFontSize(10);
-    doc.text('Municipalidad de La Cruz', 14, 22);
-    doc.text(
-      `Generado el ${new Date().toLocaleDateString('es-AR')}${filtrado ? ` · ${reportesFiltrados.length} de ${reportes.length} reportes (con filtros)` : ''}`,
-      14, 28
-    );
-
-    autoTable(doc, {
-      startY: 34,
-      head: [['Situación general', '']],
-      body: resumen.general,
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: azul },
-      columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
-      tableWidth: 120,
-    });
-
-    const bloque = (encabezado, filas) => {
-      if (!filas.length) return;
-      autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 8,
-        head: [encabezado],
-        body: filas,
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: azul },
-        columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
-      });
-    };
-    bloque(ENCABEZADOS_RESUMEN.categorias, resumen.categorias);
-    bloque(ENCABEZADOS_RESUMEN.meses, resumen.meses);
-    bloque(ENCABEZADOS_RESUMEN.prioridades, resumen.prioridades);
-
-    // El detalle empieza en una página nueva.
-    doc.addPage();
-    doc.setFontSize(14);
-    doc.text('Detalle de reportes', 14, 15);
-
-    const filas = reportesFiltrados.map(r => [
-      etiquetaCategoria(r),
-      r.direccion,
-      r.descripcion,
-      estadoTexto[r.estado],
-      new Date(r.fecha_creacion).toLocaleDateString('es-AR')
-    ]);
-
-    autoTable(doc, {
-      startY: 21,
-      head: [['Categoría', 'Dirección', 'Descripción', 'Estado', 'Fecha']],
-      body: filas,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: azul }
-    });
-
-    const paginas = doc.getNumberOfPages();
-    for (let i = 1; i <= paginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.text(`Página ${i} de ${paginas}`, 196, 290, { align: 'right' });
+  const [exportando, setExportando] = useState('');
+  const exportar = async (tipo) => {
+    setExportando(tipo);
+    try {
+      const { exportarExcelConFormato, exportarPDFConFormato } = await import('../utils/exportarReportes');
+      if (tipo === 'excel') await exportarExcelConFormato(reportesFiltrados, reportes.length);
+      else await exportarPDFConFormato(reportesFiltrados, reportes.length);
+    } catch (error) {
+      console.error(error);
+      mostrarToast('No se pudo generar el archivo. Inténtalo de nuevo.', 'error');
+    } finally {
+      setExportando('');
     }
-
-    doc.save(`reportes_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
+  const exportarExcel = () => exportar('excel');
+  const exportarPDF = () => exportar('pdf');
 
   return (
     <div className="admin-page">
@@ -467,13 +370,13 @@ function AdminPage() {
         </div>
 
         <div className="botones-exportar">
-          <button type="button" className="boton-exportar" onClick={exportarExcel}>
+          <button type="button" className="boton-exportar" onClick={exportarExcel} disabled={Boolean(exportando)}>
             <FileSpreadsheet size={18} aria-hidden="true" />
-            Exportar a Excel
+            {exportando === 'excel' ? 'Generando...' : 'Exportar a Excel'}
           </button>
-          <button type="button" className="boton-exportar boton-exportar-pdf" onClick={exportarPDF}>
+          <button type="button" className="boton-exportar boton-exportar-pdf" onClick={exportarPDF} disabled={Boolean(exportando)}>
             <FileText size={18} aria-hidden="true" />
-            Exportar a PDF
+            {exportando === 'pdf' ? 'Generando...' : 'Exportar a PDF'}
           </button>
         </div>
       </div>
