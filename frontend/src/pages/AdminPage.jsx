@@ -9,7 +9,7 @@ import { Trash2, Info, Eye, Search, Copy, X, RefreshCw, MessageCircle, FileSprea
 import { iconoCategoria, colorCategoria, etiquetaCategoria } from '../utils/categorias';
 import { ESTADOS_TEXTO } from '../utils/estados';
 import { detectarDuplicados } from '../utils/duplicados';
-import { filasResumen } from '../utils/resumenExcel';
+import { filasResumen, datosResumen, ENCABEZADOS_RESUMEN } from '../utils/resumenExcel';
 import { prioridadDe, PRIORIDAD_TEXTO, PRIORIDAD_ORDEN, tiempoMedioDeRespuesta, textoDuracion } from '../utils/prioridad';
 import Spinner from '../components/Spinner';
 import PantallaEstado from '../components/PantallaEstado';
@@ -298,14 +298,51 @@ function AdminPage() {
 
   const exportarPDF = () => {
     const doc = new jsPDF();
+    const azul = [13, 92, 107];
+    const filtrado = reportesFiltrados.length !== reportes.length;
+    const resumen = datosResumen(reportesFiltrados);
 
-    doc.setFontSize(14);
-    doc.text('Reportes Vecinales', 14, 15);
+    doc.setFontSize(16);
+    doc.text('Reportes Vecinales - Resumen', 14, 16);
     doc.setFontSize(10);
-    doc.text(`Generado el ${new Date().toLocaleDateString('es-AR')}`, 14, 21);
+    doc.text('Municipalidad de La Cruz', 14, 22);
+    doc.text(
+      `Generado el ${new Date().toLocaleDateString('es-AR')}${filtrado ? ` · ${reportesFiltrados.length} de ${reportes.length} reportes (con filtros)` : ''}`,
+      14, 28
+    );
+
+    autoTable(doc, {
+      startY: 34,
+      head: [['Situación general', '']],
+      body: resumen.general,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: azul },
+      columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+      tableWidth: 120,
+    });
+
+    const bloque = (encabezado, filas) => {
+      if (!filas.length) return;
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 8,
+        head: [encabezado],
+        body: filas,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: azul },
+        columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
+      });
+    };
+    bloque(ENCABEZADOS_RESUMEN.categorias, resumen.categorias);
+    bloque(ENCABEZADOS_RESUMEN.meses, resumen.meses);
+    bloque(ENCABEZADOS_RESUMEN.prioridades, resumen.prioridades);
+
+    // El detalle empieza en una página nueva.
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.text('Detalle de reportes', 14, 15);
 
     const filas = reportesFiltrados.map(r => [
-      r.categoria,
+      etiquetaCategoria(r),
       r.direccion,
       r.descripcion,
       estadoTexto[r.estado],
@@ -313,12 +350,19 @@ function AdminPage() {
     ]);
 
     autoTable(doc, {
-      startY: 27,
+      startY: 21,
       head: [['Categoría', 'Dirección', 'Descripción', 'Estado', 'Fecha']],
       body: filas,
       styles: { fontSize: 8 },
-      headStyles: { fillColor: [13, 92, 107] }
+      headStyles: { fillColor: azul }
     });
+
+    const paginas = doc.getNumberOfPages();
+    for (let i = 1; i <= paginas; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Página ${i} de ${paginas}`, 196, 290, { align: 'right' });
+    }
 
     doc.save(`reportes_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
@@ -327,7 +371,7 @@ function AdminPage() {
     <div className="admin-page">
       <div className="admin-cabecera">
         <h2>Panel de administración</h2>
-        <p className="admin-subtitulo">Revisa los reportes de los vecinos y actualizá cómo avanzan.</p>
+        <p className="admin-subtitulo">Revisa los reportes de los vecinos y actualiza cómo avanzan.</p>
       </div>
 
       <div className="resumen-estados" role="group" aria-label="Filtrar por estado">
