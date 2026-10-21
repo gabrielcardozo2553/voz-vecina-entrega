@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { EVENTO_NOVEDADES } from '../components/Campana';
 import axios from 'axios';
 import '../styles/pages/MisReportesPage.css';
 import { iconoCategoria, colorCategoria, etiquetaCategoria } from '../utils/categorias';
@@ -14,6 +15,7 @@ function MisReportesPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
   const [reporteSeleccionado, setReporteSeleccionado] = useState(null);
+  const [parametros, setParametros] = useSearchParams();
 
   const cargarReportes = (silencioso = false) => {
     const token = localStorage.getItem('token');
@@ -33,6 +35,30 @@ function MisReportesPage() {
   useEffect(() => {
     cargarReportes();
   }, []);
+
+  // Cuando llega una novedad nueva se actualiza la lista sin recargar la página.
+  useEffect(() => {
+    const alLlegarNovedad = () => cargarReportes(true);
+    window.addEventListener(EVENTO_NOVEDADES, alLlegarNovedad);
+    return () => window.removeEventListener(EVENTO_NOVEDADES, alLlegarNovedad);
+  }, []);
+
+  // Abre el reporte indicado desde una notificación (?reporte=ID).
+  const idPedido = Number(parametros.get('reporte'));
+  const reintentado = useRef(false);
+  useEffect(() => {
+    if (!idPedido || cargando) return;
+    const buscado = reportes.find((r) => r.id === idPedido);
+    if (!buscado && !reintentado.current) {
+      // Puede ser un reporte más nuevo que la lista: se recarga una vez antes de rendirse.
+      reintentado.current = true;
+      cargarReportes(true);
+      return;
+    }
+    reintentado.current = false;
+    if (buscado) setReporteSeleccionado(buscado);
+    setParametros({}, { replace: true });
+  }, [idPedido, cargando, reportes]);
 
   if (cargando) return <Spinner texto="Cargando tus reportes..." />;
 

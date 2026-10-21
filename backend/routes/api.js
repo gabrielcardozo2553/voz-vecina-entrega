@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require('../config/db');
 const { prepararBaseDeDatos } = require('../config/migraciones');
 const { registrarHistorial } = require('../config/historial');
+const { notificar, notificarAdmins } = require('../config/notificaciones');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -123,6 +124,12 @@ router.post('/reportes', verificarToken, (req, res, next) => {
       [req.usuario.id, categoria_id, categoriaOtro || null, descripcion, foto_url, direccion, lat, lng]
     );
 
+    await notificarAdmins({
+      tipo: 'nuevo_reporte',
+      reporteId: result.insertId,
+      texto: `Nuevo reporte de ${categoriaOtro && categorias[0].nombre.toLowerCase() === 'otros' ? categoriaOtro : categorias[0].nombre}${direccion ? ` en ${direccion}` : ''}`,
+    }, req.usuario.id);
+
     res.status(201).json({ id: result.insertId, mensaje: 'Reporte creado correctamente' });
   } catch (error) {
     console.error(error);
@@ -166,7 +173,11 @@ router.put('/reportes/:id/estado', verificarToken, verificarAdmin, async (req, r
       return res.status(400).json({ error: 'Estado no válido' });
     }
 
-    const [previos] = await db.query('SELECT estado FROM reportes WHERE id = ?', [id]);
+    const [previos] = await db.query(
+      `SELECT r.estado, r.usuario_id, r.categoria_otro, c.nombre AS categoria
+       FROM reportes r JOIN categorias c ON r.categoria_id = c.id WHERE r.id = ?`,
+      [id]
+    );
     if (previos.length === 0) {
       return res.status(404).json({ error: 'Reporte no encontrado' });
     }
@@ -189,6 +200,15 @@ router.put('/reportes/:id/estado', verificarToken, verificarAdmin, async (req, r
         accion: 'estado',
         detalle: `${TEXTO_ESTADO[previos[0].estado] || previos[0].estado} → ${TEXTO_ESTADO[estado]}`,
       }]);
+      if (previos[0].usuario_id !== req.usuario.id) {
+        await notificar([previos[0].usuario_id], {
+          tipo: 'estado',
+          reporteId: Number(id),
+          texto: estado === 'resuelto'
+            ? `¡Tu reporte de ${nombreCategoria(previos[0])} fue resuelto!`
+            : `Tu reporte de ${nombreCategoria(previos[0])} ahora está ${TEXTO_ESTADO[estado].toLowerCase()}`,
+        });
+      }
     }
 
     res.json({ mensaje: 'Estado actualizado correctamente' });
@@ -235,6 +255,20 @@ router.put('/reportes/:id/gestion', verificarToken, verificarAdmin, async (req, 
     res.status(500).json({ error: 'Error al guardar los datos de gestión' });
   }
 });
+
+function nombreCategoria(r) {
+  return r.categoria_otro && String(r.categoria).toLowerCase() === 'otros' ? r.categoria_otro : r.categoria;
+}
+
+async function infoReporte(id) {
+  const [filas] = await db.query(
+    `SELECT r.id, r.usuario_id, r.categoria_otro, c.nombre AS categoria
+     FROM reportes r JOIN categorias c ON r.categoria_id = c.id
+     WHERE r.id = ?`,
+    [id]
+  );
+  return filas[0] || null;
+}
 
 async function reporteAccesible(req, idReporte) {
   const [filas] = await db.query('SELECT usuario_id FROM reportes WHERE id = ?', [idReporte]);
@@ -310,6 +344,25 @@ router.post('/reportes/:id/mensajes', verificarToken, (req, res, next) => {
         : (fotoUrl ? 'El vecino respondió con una foto' : 'El vecino respondió'),
     }]);
 
+    const reporte = await infoReporte(id);
+    if (reporte) {
+      if (esAdmin) {
+        if (reporte.usuario_id !== req.usuario.id) {
+          await notificar([reporte.usuario_id], {
+            tipo: 'mensaje',
+            reporteId: reporte.id,
+            texto: `La Municipalidad te escribió sobre tu reporte de ${nombreCategoria(reporte)}`,
+          });
+        }
+      } else {
+        await notificarAdmins({
+          tipo: 'respuesta',
+          reporteId: reporte.id,
+          texto: `${req.usuario.nombre || 'Un vecino'} respondió${fotoUrl ? ' con una foto' : ''} sobre el reporte de ${nombreCategoria(reporte)}`,
+        }, req.usuario.id);
+      }
+    }
+
     res.status(201).json({ mensaje: 'Mensaje enviado' });
   } catch (error) {
     console.error(error);
@@ -338,7 +391,11 @@ router.put('/reportes-lote', verificarToken, verificarAdmin, async (req, res) =>
       return res.status(400).json({ error: 'Estado no válido' });
     }
 
-    const [previos] = await db.query('SELECT id, estado, responsable FROM reportes WHERE id IN (?)', [ids]);
+    const [previos] = await db.query(
+      `SELECT r.id, r.estado, r.responsable, r.usuario_id, r.categoria_otro, c.nombre AS categoria
+       FROM reportes r JOIN categorias c ON r.categoria_id = c.id WHERE r.id IN (?)`,
+      [ids]
+    );
     const entradas = [];
 
     if (estado !== undefined) {
@@ -358,6 +415,15 @@ router.put('/reportes-lote', verificarToken, verificarAdmin, async (req, res) =>
         accion: 'estado',
         detalle: `${TEXTO_ESTADO[r.estado] || r.estado} → ${TEXTO_ESTADO[estado]}`,
       }));
+      for (const r of previos.filter((x) => x.estado !== estado && x.usuario_id !== req.usuario.id)) {
+        await notificar([r.usuario_id], {
+          tipo: 'estado',
+          reporteId: r.id,
+          texto: estado === 'resuelto'
+            ? `¡Tu reporte de ${nombreCategoria(r)} fue resuelto!`
+            : `Tu reporte de ${nombreCategoria(r)} ahora está ${TEXTO_ESTADO[estado].toLowerCase()}`,
+        });
+      }
     }
 
     if (responsable !== null) {
@@ -410,6 +476,7 @@ router.delete('/reportes/:id', verificarToken, verificarAdmin, async (req, res) 
     await db.query('DELETE FROM reportes WHERE id = ?', [id]);
     await db.query('DELETE FROM historial_reportes WHERE reporte_id = ?', [id]).catch(() => {});
     await db.query('DELETE FROM mensajes_reporte WHERE reporte_id = ?', [id]).catch(() => {});
+    await db.query('DELETE FROM notificaciones WHERE reporte_id = ?', [id]).catch(() => {});
 
     // Se borran también las fotos del disco para no acumular archivos huérfanos.
     borrarArchivo(reportes[0].foto_url);
@@ -441,6 +508,53 @@ router.get('/admin/reportes', verificarToken, verificarAdmin, async (req, res) =
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al obtener reportes' });
+  }
+});
+
+// ── Notificaciones del usuario ──
+let ultimaLimpieza = 0;
+
+router.get('/notificaciones', verificarToken, async (req, res) => {
+  try {
+    await prepararBaseDeDatos();
+    if (Date.now() - ultimaLimpieza > 60 * 60 * 1000) {
+      ultimaLimpieza = Date.now();
+      db.query('DELETE FROM notificaciones WHERE fecha < NOW() - INTERVAL 60 DAY').catch(() => {});
+    }
+    const [items] = await db.query(
+      `SELECT id, tipo, reporte_id, texto, leida, fecha
+       FROM notificaciones WHERE usuario_id = ?
+       ORDER BY id DESC LIMIT 30`,
+      [req.usuario.id]
+    );
+    const [[{ noLeidas }]] = await db.query(
+      'SELECT COUNT(*) AS noLeidas FROM notificaciones WHERE usuario_id = ? AND leida = 0',
+      [req.usuario.id]
+    );
+    res.json({ noLeidas, items });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener las notificaciones' });
+  }
+});
+
+router.put('/notificaciones/leer-todas', verificarToken, async (req, res) => {
+  try {
+    await db.query('UPDATE notificaciones SET leida = 1 WHERE usuario_id = ? AND leida = 0', [req.usuario.id]);
+    res.json({ mensaje: 'Notificaciones marcadas como leídas' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al actualizar las notificaciones' });
+  }
+});
+
+router.put('/notificaciones/:id/leida', verificarToken, async (req, res) => {
+  try {
+    await db.query('UPDATE notificaciones SET leida = 1 WHERE id = ? AND usuario_id = ?', [req.params.id, req.usuario.id]);
+    res.json({ mensaje: 'Notificación marcada como leída' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al actualizar la notificación' });
   }
 });
 

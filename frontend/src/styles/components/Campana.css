@@ -1,0 +1,237 @@
+.campana {
+  position: relative;
+}
+
+.header .campana-boton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.16);
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.header .campana-boton:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+.campana-contador {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background-color: #d64545;
+  border: 2px solid var(--color-primario);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.campana-aviso {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: 14px;
+  background-color: white;
+  color: var(--color-texto);
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(11, 63, 74, 0.25);
+  white-space: normal;
+  animation: campana-entrada 0.25s ease-out;
+}
+
+.campana-aviso svg {
+  flex: none;
+  color: var(--color-acento);
+}
+
+.header .campana-aviso button {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-texto-suave);
+}
+
+.campana-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 120;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  max-height: min(520px, 75vh);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background-color: white;
+  color: var(--color-texto);
+  box-shadow: 0 12px 36px rgba(11, 63, 74, 0.3);
+  overflow: hidden;
+  white-space: normal;
+  animation: campana-entrada 0.2s ease-out;
+}
+
+.campana-panel-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eeebe0;
+}
+
+.campana-panel-cabecera h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--color-primario-oscuro);
+}
+
+.header .campana-panel-cabecera button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 16px;
+  background-color: var(--color-primario-claro);
+  color: var(--color-primario-oscuro);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.campana-vacia {
+  margin: 0;
+  padding: 28px 20px;
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--color-texto-suave);
+}
+
+.campana-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.header .campana-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 1px solid #f1eee4;
+  border-radius: 0;
+  background-color: white;
+  color: var(--color-texto);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+
+.header .campana-item:hover {
+  background-color: #faf8f1;
+}
+
+.header .campana-item-nueva {
+  background-color: #eef6f7;
+}
+
+.header .campana-item-nueva:hover {
+  background-color: #e3f0f2;
+}
+
+.campana-icono {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primario-claro);
+  color: var(--color-primario);
+}
+
+.campana-icono-nuevo_reporte { background-color: #fdf0d3; color: #8a5f05; }
+.campana-icono-respuesta { background-color: #d5f0df; color: #146c34; }
+.campana-icono-mensaje { background-color: #dceef0; color: var(--color-primario-oscuro); }
+.campana-icono-estado { background-color: #e7e3f7; color: #4b3d99; }
+
+.campana-item-texto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.35;
+}
+
+.campana-item-nueva .campana-item-texto > span {
+  font-weight: 600;
+}
+
+.campana-item-texto small {
+  font-size: 0.76rem;
+  color: var(--color-texto-suave);
+}
+
+.campana-punto {
+  flex: none;
+  align-self: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: var(--color-primario);
+}
+
+@keyframes campana-entrada {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 700px) {
+  .campana {
+    position: static;
+  }
+
+  .campana-panel,
+  .campana-aviso {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+  }
+}

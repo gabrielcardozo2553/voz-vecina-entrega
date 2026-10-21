@@ -66,6 +66,18 @@ function prepararBaseDeDatos() {
           INDEX idx_historial_reporte (reporte_id)
         )
       `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS notificaciones (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          usuario_id INT NOT NULL,
+          tipo VARCHAR(20) NOT NULL,
+          reporte_id INT NULL,
+          texto VARCHAR(255) NOT NULL,
+          leida TINYINT(1) NOT NULL DEFAULT 0,
+          fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_notificaciones_usuario (usuario_id, leida, fecha)
+        )
+      `);
       // Índices para que las listas sigan rápidas cuando haya muchos reportes.
       await agregarIndiceSiFalta('reportes', 'idx_reportes_usuario', 'usuario_id').catch(() => {});
       await agregarIndiceSiFalta('reportes', 'idx_reportes_fecha', 'fecha_creacion').catch(() => {});

@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import Nav from './Nav';
 import Logo from '../Logo';
+import Campana from '../Campana';
 import { useAuth } from '../../context/AuthContext';
 import { NOMBRE_APP, LOCALIDAD } from '../../config';
 import '../../styles/components/layout/Header.css';
@@ -32,6 +33,7 @@ function Header() {
       <div className="usuario-info">
         {usuario ? (
           <>
+            <Campana />
             <span className="usuario-avatar" aria-hidden="true">{inicial}</span>
             <span className="usuario-saludo">Hola, {usuario.nombre}</span>
             <button type="button" onClick={handleLogout} aria-label="Cerrar sesión">

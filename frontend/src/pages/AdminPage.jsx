@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
+import { EVENTO_NOVEDADES } from '../components/Campana';
 import '../styles/pages/AdminPage.css';
 import { Trash2, Info, Eye, Search, Copy, X, RefreshCw, MessageCircle, FileSpreadsheet, FileText } from 'lucide-react';
 import { iconoCategoria, colorCategoria, etiquetaCategoria } from '../utils/categorias';
@@ -33,6 +35,7 @@ function AdminPage() {
   const [vecinoAVer, setVecinoAVer] = useState(null);
   const { toast, mostrarToast } = useToast();
   const [exportando, setExportando] = useState('');
+  const [parametros, setParametros] = useSearchParams();
 
   const hayModal = Boolean(reporteAEliminar || vecinoAVer);
 
@@ -72,6 +75,29 @@ function AdminPage() {
   useEffect(() => {
     cargarReportes();
   }, []);
+
+  // Cuando llega una novedad (reporte nuevo o respuesta de un vecino) se actualiza la lista sola.
+  useEffect(() => {
+    window.addEventListener(EVENTO_NOVEDADES, cargarReportes);
+    return () => window.removeEventListener(EVENTO_NOVEDADES, cargarReportes);
+  }, []);
+
+  // Abre el reporte indicado desde una notificación (?reporte=ID).
+  const idPedido = Number(parametros.get('reporte'));
+  const reintentado = useRef(false);
+  useEffect(() => {
+    if (!idPedido || cargando) return;
+    const existe = reportes.some((r) => r.id === idPedido);
+    if (!existe && !reintentado.current) {
+      // Puede ser un reporte más nuevo que la lista: se recarga una vez antes de rendirse.
+      reintentado.current = true;
+      cargarReportes();
+      return;
+    }
+    reintentado.current = false;
+    if (existe) setIdDetalle(idPedido);
+    setParametros({}, { replace: true });
+  }, [idPedido, cargando, reportes]);
 
   const cambiarEstado = async (id, nuevoEstado) => {
     try {
