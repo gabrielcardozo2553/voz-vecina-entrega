@@ -471,13 +471,11 @@ function AdminPage() {
                     aria-label="Elegir todos los reportes de la lista"
                   />
                 </th>
-                <th>Prioridad</th>
-                <th>Categoría</th>
+                <th>Reporte</th>
                 <th>Vecino</th>
                 <th>Dirección</th>
                 <th>Descripción</th>
                 <th>Foto</th>
-                <th>Antigüedad</th>
                 <th>Responsable</th>
                 <th>Estado</th>
                 <th><span className="sr-only">Acciones</span></th>
@@ -499,18 +497,18 @@ function AdminPage() {
                         aria-label={`Elegir el reporte de ${r.categoria} en ${r.direccion}`}
                       />
                     </td>
-                    <td data-label="Prioridad">
-                      {prioridad ? (
-                        <span className={`prioridad prioridad-${prioridad}`}>{PRIORIDAD_TEXTO[prioridad]}</span>
-                      ) : (
-                        <span className="prioridad-vacia" aria-label="Sin prioridad, ya resuelto">—</span>
-                      )}
-                    </td>
-                    <td data-label="Categoría">
-                      <span className={`categoria-chip ${color}`}>
-                        <Icono size={15} strokeWidth={2} aria-hidden="true" />
-                        {etiquetaCategoria(r)}
-                      </span>
+                    <td data-label="Reporte">
+                      <div className="reporte-celda">
+                        <span className={`categoria-chip ${color}`}>
+                          <Icono size={15} strokeWidth={2} aria-hidden="true" />
+                          {etiquetaCategoria(r)}
+                        </span>
+                        {prioridad ? (
+                          <span className={`prioridad prioridad-${prioridad}`}>Prioridad {PRIORIDAD_TEXTO[prioridad].toLowerCase()}</span>
+                        ) : (
+                          <span className="prioridad-vacia">Sin prioridad</span>
+                        )}
+                      </div>
                     </td>
                     <td data-label="Vecino">
                       <div className="vecino-celda">
@@ -526,7 +524,14 @@ function AdminPage() {
                         </button>
                       </div>
                     </td>
-                    <td data-label="Dirección">{r.direccion}</td>
+                    <td data-label="Dirección">
+                      <div className="direccion-celda">
+                        <span>{r.direccion}</span>
+                        <span className={`antiguedad ${r.estado !== 'resuelto' && diasDesde(r.fecha_creacion) >= DIAS_ANTIGUO ? 'antiguedad-alerta' : ''}`}>
+                          {textoAntiguedad(r.fecha_creacion)}
+                        </span>
+                      </div>
+                    </td>
                     <td data-label="Descripción">
                       {r.descripcion}
                       {r.ultimo_mensaje_autor && (
@@ -558,11 +563,6 @@ function AdminPage() {
                           <img src={r.foto_url} alt="" />
                         </button>
                       )}
-                    </td>
-                    <td data-label="Antigüedad">
-                      <span className={`antiguedad ${r.estado !== 'resuelto' && diasDesde(r.fecha_creacion) >= DIAS_ANTIGUO ? 'antiguedad-alerta' : ''}`}>
-                        {textoAntiguedad(r.fecha_creacion)}
-                      </span>
                     </td>
                     <td data-label="Responsable">
                       {r.responsable

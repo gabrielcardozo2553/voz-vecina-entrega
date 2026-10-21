@@ -840,7 +840,7 @@
   letter-spacing: 0.02em;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   .admin-page {
     margin: 20px auto;
     padding: 0 16px;
@@ -930,5 +930,95 @@
     font-weight: 600;
     font-size: 0.8rem;
     color: var(--color-texto-suave);
+  }
+}
+
+/* ── Tabla de reportes más compacta: entra completa sin desplazarse ── */
+.admin-page {
+  max-width: min(1320px, 100%);
+}
+
+@media (min-width: 901px) {
+  .admin-page th,
+  .admin-page td {
+    padding: 12px 10px;
+  }
+
+  .admin-page table {
+    table-layout: auto;
+  }
+
+  .admin-page td:nth-child(5) {
+    min-width: 200px;
+  }
+
+  .reporte-celda,
+  .direccion-celda {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .admin-page .prioridad,
+  .admin-page .prioridad-vacia {
+    font-size: 0.78rem;
+  }
+
+  .prioridad-vacia {
+    color: var(--color-texto-suave);
+  }
+
+  .vecino-celda {
+    gap: 6px;
+  }
+
+  .acciones-celda {
+    gap: 6px;
+  }
+
+  .boton-ver,
+  .boton-eliminar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  .admin-page .estado-celda select {
+    min-width: 118px;
+  }
+}
+
+/* En pantallas medianas se oculta el avatar para ganar espacio */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .admin-page .vecino-avatar {
+    display: none;
+  }
+
+  .admin-page table td img {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (max-width: 900px) {
+  .reporte-celda,
+  .direccion-celda {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+/* En tablets se oculta la miniatura de la foto (sigue visible en el detalle) para que todo entre en pantalla */
+@media (min-width: 901px) and (max-width: 1100px) {
+  .admin-page th:nth-child(6),
+  .admin-page td:nth-child(6) {
+    display: none;
+  }
+
+  .admin-page td:nth-child(5) {
+    min-width: 160px;
   }
 }
