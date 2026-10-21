@@ -8,7 +8,10 @@ function verificarToken(req, res, next) {
     return res.status(401).json({ error: 'No autorizado, falta el token' });
   }
 
-  const token = authHeader.split(' ')[1]; 
+  const [esquema, token] = authHeader.split(' ');
+  if (esquema !== 'Bearer' || !token) {
+    return res.status(401).json({ error: 'No autorizado, falta el token' });
+  }
 
   try {
     const datos = jwt.verify(token, process.env.JWT_SECRET);
@@ -22,7 +25,7 @@ function verificarToken(req, res, next) {
 
 function verificarAdmin(req, res, next) {
   if (req.usuario.rol !== 'admin') {
-    return res.status(403).json({ error: 'No tenés permisos de administrador' });
+    return res.status(403).json({ error: 'No tienes permisos de administrador' });
   }
   next();
 }

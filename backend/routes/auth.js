@@ -3,17 +3,32 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const { limitarLogin, limitarRegistro } = require('../middleware/limitador');
+
+const MINIMO_PASSWORD = 8;
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const texto = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 
-router.post('/registro', async (req, res) => {
+router.post('/registro', limitarRegistro, async (req, res) => {
   try {
-    const { nombre, apellido, dni, email, password, aceptaTerminos } = req.body;
+    const { dni, password, aceptaTerminos } = req.body;
+    const nombre = texto(req.body.nombre, 100);
+    const apellido = texto(req.body.apellido, 100);
+    const email = texto(req.body.email, 150).toLowerCase();
 
     if (!nombre || !apellido || !dni || !email || !password) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios' });
     }
 
     
+    if (!EMAIL_VALIDO.test(email)) {
+      return res.status(400).json({ error: 'El email no es válido' });
+    }
+    if (typeof password !== 'string' || password.length < MINIMO_PASSWORD || password.length > 72) {
+      return res.status(400).json({ error: `La contraseña debe tener entre ${MINIMO_PASSWORD} y 72 caracteres` });
+    }
+
     const dniLimpio = String(dni).trim();
     if (!/^\d{7,8}$/.test(dniLimpio)) {
       return res.status(400).json({ error: 'El DNI debe tener 7 u 8 números, sin puntos' });
@@ -50,9 +65,13 @@ router.post('/registro', async (req, res) => {
 });
 
 
-router.post('/login', async (req, res) => {
+router.post('/login', limitarLogin, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = texto(req.body.email, 150).toLowerCase();
+    const { password } = req.body;
+    if (!email || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Email o contraseña incorrectos' });
+    }
 
     const [usuarios] = await db.query('SELECT * FROM usuarios WHERE email = ?', [email]);
     if (usuarios.length === 0) {

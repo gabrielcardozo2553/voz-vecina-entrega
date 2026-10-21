@@ -14,6 +14,18 @@ async function agregarColumnaSiFalta(tabla, columna, definicion) {
   }
 }
 
+async function agregarIndiceSiFalta(tabla, nombre, columnas) {
+  const [existe] = await db.query(
+    `SELECT 1 FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+    [tabla, nombre]
+  );
+  if (existe.length === 0) {
+    await db.query(`CREATE INDEX ${nombre} ON ${tabla} (${columnas})`);
+    console.log(`Se agregó el índice ${nombre}`);
+  }
+}
+
 function describirError(error) {
   const interno = error.errors && error.errors[0];
   return error.message || error.code || (interno && (interno.message || interno.code)) || String(error);
@@ -54,6 +66,9 @@ function prepararBaseDeDatos() {
           INDEX idx_historial_reporte (reporte_id)
         )
       `);
+      // Índices para que las listas sigan rápidas cuando haya muchos reportes.
+      await agregarIndiceSiFalta('reportes', 'idx_reportes_usuario', 'usuario_id').catch(() => {});
+      await agregarIndiceSiFalta('reportes', 'idx_reportes_fecha', 'fecha_creacion').catch(() => {});
     })().catch((error) => {
       preparada = null;
       console.error('No se pudo preparar la base de datos:', describirError(error));

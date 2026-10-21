@@ -6,20 +6,46 @@ const { prepararBaseDeDatos } = require('../config/migraciones');
 const { registrarHistorial } = require('../config/historial');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+
+const EXTENSIONES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    const nombreUnico = Date.now() + '-' + file.originalname;
-    cb(null, nombreUnico);
+    // Nombre aleatorio y extensión según el tipo real: nunca se usa el nombre que manda el cliente.
+    cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${EXTENSIONES[file.mimetype]}`);
   }
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 } 
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (EXTENSIONES[file.mimetype]) return cb(null, true);
+    const error = new Error('Tipo de archivo no permitido');
+    error.code = 'TIPO_INVALIDO';
+    cb(error);
+  }
 });
+
+function borrarArchivo(url) {
+  if (!url || !url.startsWith('/uploads/')) return;
+  const archivo = path.join('uploads', path.basename(url));
+  fs.unlink(archivo, () => {});
+}
+
+function errorDeSubida(err, res) {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error: 'La foto no puede pesar más de 5MB' });
+  }
+  if (err.code === 'TIPO_INVALIDO') {
+    return res.status(400).json({ error: 'El archivo tiene que ser una imagen (JPG, PNG o WEBP)' });
+  }
+  return res.status(400).json({ error: 'Error al subir la foto' });
+}
 
 
 router.get('/categorias', async (req, res) => {
@@ -55,29 +81,38 @@ router.get('/reportes', async (req, res) => {
 
 router.post('/reportes', verificarToken, (req, res, next) => {
   upload.single('foto')(req, res, (err) => {
-    if (err) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'La foto no puede pesar más de 5MB' });
-      }
-      return res.status(400).json({ error: 'Error al subir la foto' });
-    }
+    if (err) return errorDeSubida(err, res);
     next();
   });
 }, async (req, res) => {
   try {
-    const { usuario_id, categoria_id, descripcion, direccion, latitud, longitud } = req.body;
+    const { categoria_id, latitud, longitud } = req.body;
+    const descripcion = String(req.body.descripcion || '').trim().slice(0, 2000);
+    const direccion = String(req.body.direccion || '').trim().slice(0, 255);
 
     if (!req.file) {
       return res.status(400).json({ error: 'La foto es obligatoria' });
+    }
+    if (!descripcion || !direccion) {
+      borrarArchivo(`/uploads/${req.file.filename}`);
+      return res.status(400).json({ error: 'La descripción y la dirección son obligatorias' });
+    }
+    const lat = latitud === undefined || latitud === '' ? null : Number(latitud);
+    const lng = longitud === undefined || longitud === '' ? null : Number(longitud);
+    if ((lat !== null && !(lat >= -90 && lat <= 90)) || (lng !== null && !(lng >= -180 && lng <= 180))) {
+      borrarArchivo(`/uploads/${req.file.filename}`);
+      return res.status(400).json({ error: 'La ubicación no es válida' });
     }
 
     await prepararBaseDeDatos();
     const [categorias] = await db.query('SELECT nombre FROM categorias WHERE id = ?', [categoria_id]);
     if (categorias.length === 0) {
+      borrarArchivo(`/uploads/${req.file.filename}`);
       return res.status(400).json({ error: 'La categoría no es válida' });
     }
     const categoriaOtro = String(req.body.categoria_otro || '').trim().slice(0, 100);
     if (categorias[0].nombre.toLowerCase() === 'otros' && categoriaOtro.length < 3) {
+      borrarArchivo(`/uploads/${req.file.filename}`);
       return res.status(400).json({ error: 'Contanos de qué se trata el problema' });
     }
 
@@ -85,7 +120,7 @@ router.post('/reportes', verificarToken, (req, res, next) => {
 
     const [result] = await db.query(
       'INSERT INTO reportes (usuario_id, categoria_id, categoria_otro, descripcion, foto_url, direccion, latitud, longitud) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [usuario_id, categoria_id, categoriaOtro || null, descripcion, foto_url, direccion, latitud || null, longitud || null]
+      [req.usuario.id, categoria_id, categoriaOtro || null, descripcion, foto_url, direccion, lat, lng]
     );
 
     res.status(201).json({ id: result.insertId, mensaje: 'Reporte creado correctamente' });
@@ -229,24 +264,19 @@ router.get('/reportes/:id/mensajes', verificarToken, async (req, res) => {
 
 router.post('/reportes/:id/mensajes', verificarToken, (req, res, next) => {
   upload.single('foto')(req, res, (err) => {
-    if (err) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'La foto no puede pesar más de 5MB' });
-      }
-      return res.status(400).json({ error: 'Error al subir la foto' });
-    }
+    if (err) return errorDeSubida(err, res);
     next();
   });
 }, async (req, res) => {
   try {
+    res.on('finish', () => {
+      if (res.statusCode >= 400 && req.file) borrarArchivo(`/uploads/${req.file.filename}`);
+    });
     await prepararBaseDeDatos();
     const { id } = req.params;
     const texto = String(req.body.texto || '').trim().slice(0, 1000);
     const esAdmin = req.usuario.rol === 'admin';
 
-    if (req.file && !String(req.file.mimetype).startsWith('image/')) {
-      return res.status(400).json({ error: 'El archivo tiene que ser una imagen' });
-    }
     if (!texto && !req.file) {
       return res.status(400).json({ error: 'Escribe un mensaje o adjunta una foto' });
     }
@@ -369,9 +399,22 @@ router.get('/admin/reportes/:id/historial', verificarToken, verificarAdmin, asyn
 router.delete('/reportes/:id', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    const [reportes] = await db.query('SELECT foto_url FROM reportes WHERE id = ?', [id]);
+    if (reportes.length === 0) {
+      return res.status(404).json({ error: 'Reporte no encontrado' });
+    }
+    const [fotosMensajes] = await db
+      .query('SELECT foto_url FROM mensajes_reporte WHERE reporte_id = ? AND foto_url IS NOT NULL', [id])
+      .catch(() => [[]]);
+
     await db.query('DELETE FROM reportes WHERE id = ?', [id]);
     await db.query('DELETE FROM historial_reportes WHERE reporte_id = ?', [id]).catch(() => {});
     await db.query('DELETE FROM mensajes_reporte WHERE reporte_id = ?', [id]).catch(() => {});
+
+    // Se borran también las fotos del disco para no acumular archivos huérfanos.
+    borrarArchivo(reportes[0].foto_url);
+    fotosMensajes.forEach((m) => borrarArchivo(m.foto_url));
+
     res.json({ mensaje: 'Reporte eliminado correctamente' });
   } catch (error) {
     console.error(error);
