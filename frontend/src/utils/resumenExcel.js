@@ -65,7 +65,7 @@ export function datosResumen(reportes) {
 export const ENCABEZADOS_RESUMEN = {
   categorias: ['Por categoría', 'Total', 'Pendientes', 'En proceso', 'Resueltos'],
   meses: ['Por mes', 'Recibidos', 'Resueltos'],
-  prioridades: ['Pendientes por prioridad', 'Cantidad'],
+  prioridades: ['Sin resolver por prioridad', 'Cantidad'],
 };
 
 // Arma las filas de la hoja "Resumen" del Excel.

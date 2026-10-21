@@ -286,6 +286,15 @@ function AdminPage() {
       : `Incluye ${reportesFiltrados.length} de ${reportes.length} reportes (según los filtros aplicados)`;
     const hojaResumen = XLSX.utils.aoa_to_sheet(filasResumen(reportesFiltrados, descripcionFiltros));
     hojaResumen['!cols'] = [{ wch: 38 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+    // Los porcentajes se guardan como número con formato %, así quedan alineados con el resto.
+    Object.values(hojaResumen).forEach((celda) => {
+      if (celda && typeof celda.v === 'string' && /^\d+%$/.test(celda.v)) {
+        celda.v = parseInt(celda.v, 10) / 100;
+        celda.t = 'n';
+        celda.z = '0%';
+        delete celda.w;
+      }
+    });
 
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hojaResumen, 'Resumen');
