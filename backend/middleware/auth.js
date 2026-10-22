@@ -14,7 +14,7 @@ function verificarToken(req, res, next) {
   }
 
   try {
-    const datos = jwt.verify(token, process.env.JWT_SECRET);
+    const datos = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     req.usuario = datos; 
     next(); 
   } catch (error) {

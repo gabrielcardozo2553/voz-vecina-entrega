@@ -38,6 +38,7 @@ function prepararBaseDeDatos() {
       await agregarColumnaSiFalta('reportes', 'responsable', 'VARCHAR(100) NULL');
       await agregarColumnaSiFalta('reportes', 'notas_internas', 'TEXT NULL');
       await agregarColumnaSiFalta('reportes', 'categoria_otro', 'VARCHAR(100) NULL');
+      await agregarColumnaSiFalta('reportes', 'miniatura_url', 'VARCHAR(255) NULL');
       await db.query(`
         INSERT INTO categorias (nombre)
         SELECT 'Otros' FROM DUAL

@@ -41,19 +41,46 @@ Necesitas Node.js 20 o superior y MySQL funcionando con la base `reportes_vecina
 
 3. **Cuenta de administrador:** se crea registrándose en la app y cambiando el campo `rol` de ese usuario a `admin` en la tabla `usuarios`.
 
+## Versión para usar (un solo puerto)
+
+Para dejarlo funcionando de forma estable, en vez de `npm run dev`:
+```
+cd frontend
+npm run build
+cd ../backend
+node index.js
+```
+Si existe `frontend/dist`, el mismo servidor entrega la web y la API en http://localhost:3000. Es más rápido, más seguro que el modo desarrollo y alcanza con un solo túnel.
+
+## Copias de seguridad
+
+```
+cd backend
+npm run backup
+```
+Guarda la base de datos (`base.sql`) y las fotos en una carpeta `backups/` junto al proyecto, con fecha y hora, y conserva las últimas 14 copias (se cambia con `BACKUP_KEEP` en el `.env`; `BACKUP_DIR` elige otra carpeta, por ejemplo un disco externo).
+
+Para que se haga sola todos los días a las 3:00 en Windows:
+```
+schtasks /create /tn "Backup Voz Vecinal" /tr "node D:\reportes_vecinales\backend\scripts\backup.js" /sc daily /st 03:00
+```
+Para **restaurar**: importa `base.sql` en MySQL (por ejemplo desde phpMyAdmin) y copia el contenido de la carpeta `uploads` de la copia a `backend/uploads`.
+
 ## Probar desde otra red
 
-Con el front y el back encendidos, en una tercera terminal:
+Con el servidor encendido, en otra terminal:
 ```
-cloudflared tunnel --url http://localhost:5173
+cloudflared tunnel --url http://localhost:3000
 ```
+(En modo desarrollo, con `npm run dev`, el túnel apunta al puerto 5173.)
 Te da una dirección `https://...trycloudflare.com` que funciona desde cualquier lugar mientras la terminal siga abierta.
 
 ## Seguridad
 
 - Las contraseñas se guardan con bcrypt y las sesiones duran 7 días.
 - El login y el registro tienen límite de intentos.
-- Las fotos se validan (solo imágenes, hasta 5 MB) y se guardan con nombres aleatorios.
+- Las fotos se validan (solo imágenes reales, hasta 5 MB) y se guardan con nombres aleatorios, junto con una miniatura para que las listas carguen rápido.
+- Hay límites de envío por cuenta para evitar abusos, y la lista pública de reportes se carga por páginas.
 - `.env`, las fotos subidas y los archivos `.sql` no se suben al repositorio.
 - Opcionales en `.env`: `CORS_ORIGIN` para limitar qué sitio puede usar la API y `TRUST_PROXY` si hay un proxy delante.
 

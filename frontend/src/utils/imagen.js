@@ -17,9 +17,9 @@ function cargarImagen(archivo) {
   });
 }
 
-export async function comprimirImagen(archivo) {
+export async function comprimirImagen(archivo, { lado = LADO_MAXIMO, calidad = CALIDAD } = {}) {
   const img = await cargarImagen(archivo);
-  const escala = Math.min(1, LADO_MAXIMO / Math.max(img.naturalWidth, img.naturalHeight));
+  const escala = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
   const ancho = Math.round(img.naturalWidth * escala);
   const alto = Math.round(img.naturalHeight * escala);
 
@@ -28,7 +28,7 @@ export async function comprimirImagen(archivo) {
   canvas.height = alto;
   canvas.getContext('2d').drawImage(img, 0, 0, ancho, alto);
 
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', CALIDAD));
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', calidad));
   if (!blob) throw new Error('No se pudo comprimir la imagen');
 
   const nombre = archivo.name.replace(/\.[^.]+$/, '') || 'foto';

@@ -6,6 +6,8 @@ const db = require('../config/db');
 const { limitarLogin, limitarRegistro } = require('../middleware/limitador');
 
 const MINIMO_PASSWORD = 8;
+// Hash de relleno: se compara igual aunque el email no exista, para que la demora no delate qué cuentas existen.
+const HASH_FALSO = bcrypt.hashSync('relleno-para-igualar-tiempos', 10);
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const texto = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
@@ -78,6 +80,7 @@ router.post('/login', limitarLogin, async (req, res) => {
 
     const [usuarios] = await db.query('SELECT * FROM usuarios WHERE email = ?', [email]);
     if (usuarios.length === 0) {
+      await bcrypt.compare(password, HASH_FALSO);
       return res.status(400).json({ error: 'Email o contraseña incorrectos' });
     }
 
@@ -93,7 +96,7 @@ router.post('/login', limitarLogin, async (req, res) => {
     const token = jwt.sign(
       { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '7d', algorithm: 'HS256' }
     );
 
     res.json({

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/pages/VerReportesPage.css';
@@ -9,69 +9,79 @@ import Spinner from '../components/Spinner';
 import PantallaEstado from '../components/PantallaEstado';
 import DetalleReporteModal from '../components/DetalleReporteModal';
 
+const POR_PAGINA = 12;
+
+// "2026-10" -> "Octubre de 2026"
+function textoMes(valor) {
+  const [anio, mes] = valor.split('-').map(Number);
+  const texto = new Date(anio, mes - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 function VerReportesPage() {
-  const [reportes, setReportes] = useState([]);
+  const [items, setItems] = useState([]);
+  const [conteo, setConteo] = useState({ todos: 0, pendiente: 0, en_proceso: 0, resuelto: 0 });
+  const [meses, setMeses] = useState([]);
+  const [hayMas, setHayMas] = useState(false);
+  const [pagina, setPagina] = useState(1);
   const [cargando, setCargando] = useState(true);
+  const [actualizando, setActualizando] = useState(false);
+  const [cargandoMas, setCargandoMas] = useState(false);
   const [error, setError] = useState(false);
-  const [cantidadVisible, setCantidadVisible] = useState(6);
   const [reporteSeleccionado, setReporteSeleccionado] = useState(null);
   const [filtroMes, setFiltroMes] = useState('todos');
+  const [filtroEstado, setFiltroEstado] = useState('todos');
+  const ultimaPeticion = useRef(0);
 
-  const cargarReportes = () => {
-    setCargando(true);
+  // Pide una página al servidor. Si llegan respuestas fuera de orden, solo vale la última.
+  const cargarPagina = (numero) => {
+    const id = ++ultimaPeticion.current;
+    const params = { pagina: numero, limite: POR_PAGINA };
+    if (filtroEstado !== 'todos') params.estado = filtroEstado;
+    if (filtroMes !== 'todos') params.mes = filtroMes;
+
+    if (numero === 1) setActualizando(true);
+    else setCargandoMas(true);
     setError(false);
-    axios.get('/api/reportes')
-      .then(res => setReportes(res.data))
+
+    return axios.get('/api/reportes', { params })
+      .then(res => {
+        if (id !== ultimaPeticion.current) return;
+        setItems(anteriores => (numero === 1 ? res.data.items : [...anteriores, ...res.data.items]));
+        setConteo(res.data.conteo);
+        setMeses(res.data.meses);
+        setHayMas(res.data.hayMas);
+        setPagina(numero);
+      })
       .catch(err => {
+        if (id !== ultimaPeticion.current) return;
         console.error(err);
         setError(true);
       })
-      .finally(() => setCargando(false));
+      .finally(() => {
+        if (id !== ultimaPeticion.current) return;
+        setCargando(false);
+        setActualizando(false);
+        setCargandoMas(false);
+      });
   };
 
   useEffect(() => {
-    cargarReportes();
-  }, []);
-
-  const [filtroEstado, setFiltroEstado] = useState('todos');
-
-  const mesAnioTexto = (fecha) => {
-    const texto = new Date(fecha).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-    return texto.charAt(0).toUpperCase() + texto.slice(1);
-  };
+    cargarPagina(1);
+  }, [filtroEstado, filtroMes]);
 
   if (cargando) return <Spinner texto="Cargando reportes..." />;
 
-  if (error) {
+  if (error && items.length === 0) {
     return (
       <PantallaEstado tipo="conexion">
-        <button type="button" className="pantalla-boton" onClick={cargarReportes}>
+        <button type="button" className="pantalla-boton" onClick={() => { setCargando(true); cargarPagina(1); }}>
           <RefreshCw size={18} aria-hidden="true" />
           Reintentar
         </button>
       </PantallaEstado>
     );
   }
-
-  const mesesDisponibles = [...new Set(reportes.map(r => mesAnioTexto(r.fecha_creacion)))];
-
-  const reportesDelMes = filtroMes === 'todos'
-    ? reportes
-    : reportes.filter(r => mesAnioTexto(r.fecha_creacion) === filtroMes);
-
-  const conteo = {
-    todos: reportesDelMes.length,
-    pendiente: reportesDelMes.filter(r => r.estado === 'pendiente').length,
-    en_proceso: reportesDelMes.filter(r => r.estado === 'en_proceso').length,
-    resuelto: reportesDelMes.filter(r => r.estado === 'resuelto').length,
-  };
-
-  const reportesFiltrados = filtroEstado === 'todos'
-    ? reportesDelMes
-    : reportesDelMes.filter(r => r.estado === filtroEstado);
-
-  const reportesVisibles = reportesFiltrados.slice(0, cantidadVisible);
-  const hayMasPorCargar = cantidadVisible < reportesFiltrados.length;
 
   return (
     <div className="ver-reportes-page">
@@ -82,7 +92,7 @@ function VerReportesPage() {
         </p>
       </div>
 
-      {reportes.length > 0 && (
+      {meses.length > 0 && (
         <div className="filtros-barra">
           <div className="filtro-estados" role="group" aria-label="Filtrar por estado">
             {[
@@ -96,10 +106,7 @@ function VerReportesPage() {
                 key={valor}
                 className={`filtro-chip filtro-${valor} ${filtroEstado === valor ? 'activo' : ''}`}
                 aria-pressed={filtroEstado === valor}
-                onClick={() => {
-                  setFiltroEstado(valor);
-                  setCantidadVisible(6);
-                }}
+                onClick={() => setFiltroEstado(valor)}
               >
                 {texto}
                 <span className="filtro-conteo">{conteo[valor]}</span>
@@ -110,21 +117,18 @@ function VerReportesPage() {
             className="filtro-mes"
             aria-label="Filtrar por mes"
             value={filtroMes}
-            onChange={(e) => {
-              setFiltroMes(e.target.value);
-              setCantidadVisible(6);
-            }}
+            onChange={(e) => setFiltroMes(e.target.value)}
           >
             <option value="todos">Todos los meses</option>
-            {mesesDisponibles.map(mes => (
-              <option key={mes} value={mes}>{mes}</option>
+            {meses.map(mes => (
+              <option key={mes} value={mes}>{textoMes(mes)}</option>
             ))}
           </select>
         </div>
       )}
 
-      {reportesFiltrados.length === 0 ? (
-        reportes.length === 0 ? (
+      {items.length === 0 ? (
+        meses.length === 0 ? (
           <PantallaEstado tipo="vacio" texto="Cuando los vecinos reporten problemas, los verás aquí. Puedes ser el primero.">
             <Link to="/" className="pantalla-boton">
               <Plus size={18} aria-hidden="true" />
@@ -145,8 +149,8 @@ function VerReportesPage() {
         )
       ) : (
         <>
-          <div className="reportes-grid">
-            {reportesVisibles.map(r => {
+          <div className={`reportes-grid ${actualizando ? 'reportes-grid-actualizando' : ''}`} aria-busy={actualizando}>
+            {items.map(r => {
               const Icono = iconoCategoria(r.categoria);
               const color = colorCategoria(r.categoria);
               return (
@@ -165,7 +169,7 @@ function VerReportesPage() {
                 >
                   <div className="reporte-media">
                     {r.foto_url ? (
-                      <img src={r.foto_url} alt="Foto del reporte" className="reporte-foto" loading="lazy" decoding="async" />
+                      <img src={r.miniatura_url || r.foto_url} alt="Foto del reporte" className="reporte-foto" loading="lazy" decoding="async" />
                     ) : (
                       <div className={`reporte-foto reporte-sin-foto ${color}`}>
                         <Icono size={40} strokeWidth={1.5} aria-hidden="true" />
@@ -196,16 +200,20 @@ function VerReportesPage() {
             })}
           </div>
 
-          {hayMasPorCargar && (
+          {hayMas && (
             <div className="cargar-mas-contenedor">
               <button
                 type="button"
                 className="boton-cargar-mas"
-                onClick={() => setCantidadVisible(prev => prev + 6)}
+                disabled={cargandoMas}
+                onClick={() => cargarPagina(pagina + 1)}
               >
-                Cargar más reportes
+                {cargandoMas ? 'Cargando...' : 'Cargar más reportes'}
               </button>
             </div>
+          )}
+          {error && (
+            <p className="cargar-mas-error" role="alert">No se pudieron cargar más reportes. Inténtalo de nuevo.</p>
           )}
         </>
       )}

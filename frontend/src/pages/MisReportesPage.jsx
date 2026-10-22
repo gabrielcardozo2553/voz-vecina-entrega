@@ -134,7 +134,7 @@ function MisReportesPage() {
               >
                 <div className="reporte-media">
                   {r.foto_url ? (
-                    <img src={r.foto_url} alt="Foto del reporte" className="reporte-foto" loading="lazy" decoding="async" />
+                    <img src={r.miniatura_url || r.foto_url} alt="Foto del reporte" className="reporte-foto" loading="lazy" decoding="async" />
                   ) : (
                     <div className={`reporte-foto reporte-sin-foto ${color}`}>
                       <Icono size={40} strokeWidth={1.5} aria-hidden="true" />

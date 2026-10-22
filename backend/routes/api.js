@@ -11,11 +11,13 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
+const DIR_UPLOADS = path.join(__dirname, '..', 'uploads');
+
 const EXTENSIONES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, DIR_UPLOADS);
   },
   filename: (req, file, cb) => {
     // Nombre aleatorio y extensión según el tipo real: nunca se usa el nombre que manda el cliente.
@@ -35,7 +37,7 @@ const upload = multer({
 
 function borrarArchivo(url) {
   if (!url || !url.startsWith('/uploads/')) return;
-  const archivo = path.join('uploads', path.basename(url));
+  const archivo = path.join(DIR_UPLOADS, path.basename(url));
   fs.unlink(archivo, () => {});
 }
 
@@ -49,6 +51,38 @@ function errorDeSubida(err, res) {
   return res.status(400).json({ error: 'Error al subir la foto' });
 }
 
+// Comprueba el contenido real del archivo (no solo lo que declara el navegador).
+function esImagenReal(rutaArchivo) {
+  try {
+    const fd = fs.openSync(rutaArchivo, 'r');
+    const cab = Buffer.alloc(12);
+    fs.readSync(fd, cab, 0, 12, 0);
+    fs.closeSync(fd);
+    return (
+      (cab[0] === 0xff && cab[1] === 0xd8 && cab[2] === 0xff) ||
+      (cab[0] === 0x89 && cab.toString('latin1', 1, 4) === 'PNG') ||
+      cab.toString('latin1', 0, 4) === 'GIF8' ||
+      (cab.toString('latin1', 0, 4) === 'RIFF' && cab.toString('latin1', 8, 12) === 'WEBP')
+    );
+  } catch {
+    return false;
+  }
+}
+
+function archivosSubidos(req) {
+  if (req.file) return [req.file];
+  return req.files ? Object.values(req.files).flat() : [];
+}
+
+function borrarSubidas(req) {
+  archivosSubidos(req).forEach((f) => borrarArchivo(`/uploads/${f.filename}`));
+}
+
+function verificarImagenes(req, res, next) {
+  if (archivosSubidos(req).every((f) => esImagenReal(f.path))) return next();
+  borrarSubidas(req);
+  return res.status(400).json({ error: 'El archivo no es una imagen válida' });
+}
 
 router.get('/categorias', async (req, res) => {
   try {
@@ -65,15 +99,48 @@ router.get('/categorias', async (req, res) => {
 router.get('/reportes', async (req, res) => {
   try {
     await prepararBaseDeDatos();
-    const [rows] = await db.query(`
-      SELECT r.id, r.descripcion, r.foto_url, r.direccion, r.estado, r.fecha_creacion,
-             r.latitud, r.longitud, r.categoria_otro,
-             c.nombre AS categoria
-      FROM reportes r
-      JOIN categorias c ON r.categoria_id = c.id
-      ORDER BY r.fecha_creacion DESC
-    `);
-    res.json(rows);
+    const limite = Math.min(50, Math.max(1, parseInt(req.query.limite, 10) || 12));
+    const pagina = Math.max(1, parseInt(req.query.pagina, 10) || 1);
+    const estado = ['pendiente', 'en_proceso', 'resuelto'].includes(req.query.estado) ? req.query.estado : null;
+    const mes = /^\d{4}-(0[1-9]|1[0-2])$/.test(req.query.mes || '') ? req.query.mes : null;
+
+    const condMes = mes ? 'r.fecha_creacion >= ? AND r.fecha_creacion < DATE_ADD(?, INTERVAL 1 MONTH)' : '1 = 1';
+    const paramsMes = mes ? [`${mes}-01`, `${mes}-01`] : [];
+
+    const [porEstado] = await db.query(
+      `SELECT r.estado, COUNT(*) AS cantidad FROM reportes r WHERE ${condMes} GROUP BY r.estado`,
+      paramsMes
+    );
+    const conteo = { todos: 0, pendiente: 0, en_proceso: 0, resuelto: 0 };
+    porEstado.forEach((f) => {
+      if (f.estado in conteo) conteo[f.estado] = Number(f.cantidad);
+      conteo.todos += Number(f.cantidad);
+    });
+
+    const [meses] = await db.query(
+      "SELECT DATE_FORMAT(fecha_creacion, '%Y-%m') AS mes FROM reportes GROUP BY mes ORDER BY mes DESC"
+    );
+
+    const [items] = await db.query(
+      `SELECT r.id, r.descripcion, r.foto_url, r.miniatura_url, r.direccion, r.estado, r.fecha_creacion,
+              r.latitud, r.longitud, r.categoria_otro,
+              c.nombre AS categoria
+       FROM reportes r
+       JOIN categorias c ON r.categoria_id = c.id
+       WHERE ${condMes}${estado ? ' AND r.estado = ?' : ''}
+       ORDER BY r.fecha_creacion DESC, r.id DESC
+       LIMIT ? OFFSET ?`,
+      [...paramsMes, ...(estado ? [estado] : []), limite, (pagina - 1) * limite]
+    );
+
+    const total = estado ? conteo[estado] : conteo.todos;
+    res.json({
+      items,
+      total,
+      conteo,
+      meses: meses.map((m) => m.mes),
+      hayMas: pagina * limite < total,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al obtener reportes' });
@@ -82,59 +149,62 @@ router.get('/reportes', async (req, res) => {
 
 
 router.post('/reportes', verificarToken, limitarReportes, (req, res, next) => {
-  upload.single('foto')(req, res, (err) => {
-    if (err) return errorDeSubida(err, res);
+  upload.fields([{ name: 'foto', maxCount: 1 }, { name: 'miniatura', maxCount: 1 }])(req, res, (err) => {
+    if (err) {
+      borrarSubidas(req);
+      return errorDeSubida(err, res);
+    }
     next();
   });
-}, async (req, res) => {
+}, verificarImagenes, async (req, res) => {
   try {
     const { categoria_id, latitud, longitud } = req.body;
     const descripcion = String(req.body.descripcion || '').trim().slice(0, 2000);
     const direccion = String(req.body.direccion || '').trim().slice(0, 255);
+    const archivoFoto = req.files?.foto?.[0];
+    const archivoMini = req.files?.miniatura?.[0];
 
-    if (!req.file) {
-      return res.status(400).json({ error: 'La foto es obligatoria' });
-    }
-    if (!descripcion || !direccion) {
-      borrarArchivo(`/uploads/${req.file.filename}`);
-      return res.status(400).json({ error: 'La descripción y la dirección son obligatorias' });
-    }
+    const rechazar = (estado, mensaje) => {
+      borrarSubidas(req);
+      return res.status(estado).json({ error: mensaje });
+    };
+
+    if (!archivoFoto) return rechazar(400, 'La foto es obligatoria');
+    if (!descripcion || !direccion) return rechazar(400, 'La descripción y la dirección son obligatorias');
+
     const lat = latitud === undefined || latitud === '' ? null : Number(latitud);
     const lng = longitud === undefined || longitud === '' ? null : Number(longitud);
     if ((lat !== null && !(lat >= -90 && lat <= 90)) || (lng !== null && !(lng >= -180 && lng <= 180))) {
-      borrarArchivo(`/uploads/${req.file.filename}`);
-      return res.status(400).json({ error: 'La ubicación no es válida' });
+      return rechazar(400, 'La ubicación no es válida');
     }
 
     await prepararBaseDeDatos();
     const [categorias] = await db.query('SELECT nombre FROM categorias WHERE id = ?', [categoria_id]);
-    if (categorias.length === 0) {
-      borrarArchivo(`/uploads/${req.file.filename}`);
-      return res.status(400).json({ error: 'La categoría no es válida' });
-    }
-    const categoriaOtro = String(req.body.categoria_otro || '').trim().slice(0, 100);
-    if (categorias[0].nombre.toLowerCase() === 'otros' && categoriaOtro.length < 3) {
-      borrarArchivo(`/uploads/${req.file.filename}`);
-      return res.status(400).json({ error: 'Cuéntanos de qué se trata el problema' });
-    }
+    if (categorias.length === 0) return rechazar(400, 'La categoría no es válida');
 
-    const foto_url = `/uploads/${req.file.filename}`;
+    const categoriaOtro = String(req.body.categoria_otro || '').trim().slice(0, 100);
+    const esOtros = categorias[0].nombre.toLowerCase() === 'otros';
+    if (esOtros && categoriaOtro.length < 3) return rechazar(400, 'Cuéntanos de qué se trata el problema');
+
+    const foto_url = `/uploads/${archivoFoto.filename}`;
+    const miniatura_url = archivoMini ? `/uploads/${archivoMini.filename}` : null;
 
     const [result] = await db.query(
-      'INSERT INTO reportes (usuario_id, categoria_id, categoria_otro, descripcion, foto_url, direccion, latitud, longitud) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.usuario.id, categoria_id, categoriaOtro || null, descripcion, foto_url, direccion, lat, lng]
+      `INSERT INTO reportes (usuario_id, categoria_id, categoria_otro, descripcion, foto_url, miniatura_url, direccion, latitud, longitud)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [req.usuario.id, categoria_id, categoriaOtro || null, descripcion, foto_url, miniatura_url, direccion, lat, lng]
     );
 
     await notificarAdmins({
       tipo: 'nuevo_reporte',
       reporteId: result.insertId,
-      texto: `Nuevo reporte de ${categoriaOtro && categorias[0].nombre.toLowerCase() === 'otros' ? categoriaOtro : categorias[0].nombre}${direccion ? ` en ${direccion}` : ''}`,
+      texto: `Nuevo reporte de ${esOtros && categoriaOtro ? categoriaOtro : categorias[0].nombre} en ${direccion}`,
     }, req.usuario.id);
 
     res.status(201).json({ id: result.insertId, mensaje: 'Reporte creado correctamente' });
   } catch (error) {
     console.error(error);
-    if (req.file) borrarArchivo(`/uploads/${req.file.filename}`);
+    borrarSubidas(req);
     res.status(500).json({ error: 'Error al crear el reporte' });
   }
 });
@@ -144,7 +214,7 @@ router.get('/mis-reportes', verificarToken, async (req, res) => {
   try {
     await prepararBaseDeDatos();
     const [rows] = await db.query(`
-      SELECT r.id, r.descripcion, r.foto_url, r.direccion, r.estado, r.fecha_creacion,
+      SELECT r.id, r.descripcion, r.foto_url, r.miniatura_url, r.direccion, r.estado, r.fecha_creacion,
              r.latitud, r.longitud, r.categoria_otro,
              c.nombre AS categoria,
              (SELECT m.autor FROM mensajes_reporte m WHERE m.reporte_id = r.id ORDER BY m.id DESC LIMIT 1) AS ultimo_mensaje_autor,
@@ -303,7 +373,7 @@ router.post('/reportes/:id/mensajes', verificarToken, limitarMensajes, (req, res
     if (err) return errorDeSubida(err, res);
     next();
   });
-}, async (req, res) => {
+}, verificarImagenes, async (req, res) => {
   try {
     res.on('finish', () => {
       if (res.statusCode >= 400 && req.file) borrarArchivo(`/uploads/${req.file.filename}`);
@@ -467,7 +537,7 @@ router.get('/admin/reportes/:id/historial', verificarToken, verificarAdmin, asyn
 router.delete('/reportes/:id', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const [reportes] = await db.query('SELECT foto_url FROM reportes WHERE id = ?', [id]);
+    const [reportes] = await db.query('SELECT foto_url, miniatura_url FROM reportes WHERE id = ?', [id]);
     if (reportes.length === 0) {
       return res.status(404).json({ error: 'Reporte no encontrado' });
     }
@@ -482,6 +552,7 @@ router.delete('/reportes/:id', verificarToken, verificarAdmin, async (req, res) 
 
     // Se borran también las fotos del disco para no acumular archivos huérfanos.
     borrarArchivo(reportes[0].foto_url);
+    borrarArchivo(reportes[0].miniatura_url);
     fotosMensajes.forEach((m) => borrarArchivo(m.foto_url));
 
     res.json({ mensaje: 'Reporte eliminado correctamente' });
@@ -495,7 +566,7 @@ router.get('/admin/reportes', verificarToken, verificarAdmin, async (req, res) =
   try {
     await prepararBaseDeDatos();
     const [rows] = await db.query(`
-      SELECT r.id, r.descripcion, r.foto_url, r.direccion, r.estado, r.fecha_creacion,
+      SELECT r.id, r.descripcion, r.foto_url, r.miniatura_url, r.direccion, r.estado, r.fecha_creacion,
              r.fecha_resolucion, r.responsable, r.notas_internas, r.latitud, r.longitud, r.categoria_otro,
              (SELECT m.autor FROM mensajes_reporte m WHERE m.reporte_id = r.id ORDER BY m.id DESC LIMIT 1) AS ultimo_mensaje_autor,
              (SELECT COUNT(*) FROM mensajes_reporte m2 WHERE m2.reporte_id = r.id) AS cantidad_mensajes,

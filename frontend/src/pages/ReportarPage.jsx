@@ -32,6 +32,7 @@ function ReportarPage() {
   const [ubicacion, setUbicacion] = useState({ lat: null, lng: null });
   const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
   const [foto, setFoto] = useState(null);
+  const [miniatura, setMiniatura] = useState(null);
   const [fotoPreview, setFotoPreview] = useState(null);
   const [procesandoFoto, setProcesandoFoto] = useState(false);
   const [mensajeFoto, setMensajeFoto] = useState('');
@@ -115,8 +116,17 @@ function ReportarPage() {
       return;
     }
 
+    // Versión chica para las listas: así las pantallas con muchos reportes cargan rápido.
+    let chica = null;
+    try {
+      chica = await comprimirImagen(resultado, { lado: 480, calidad: 0.7 });
+    } catch {
+      chica = null;
+    }
+
     if (fotoPreview) URL.revokeObjectURL(fotoPreview);
     setFoto(resultado);
+    setMiniatura(chica);
     setFotoPreview(URL.createObjectURL(resultado));
     setMensaje('');
   };
@@ -124,6 +134,7 @@ function ReportarPage() {
   const handleQuitarFoto = () => {
     if (fotoPreview) URL.revokeObjectURL(fotoPreview);
     setFoto(null);
+    setMiniatura(null);
     setFotoPreview(null);
     setMensajeFoto('');
   };
@@ -168,6 +179,7 @@ function ReportarPage() {
       data.append('longitud', ubicacion.lng);
     }
     if (foto) data.append('foto', foto);
+    if (miniatura) data.append('miniatura', miniatura);
 
     const token = localStorage.getItem('token');
 

@@ -8,6 +8,9 @@ node_modules/
 backend/uploads/*
 !backend/uploads/.gitkeep
 
+# Copias de seguridad (tienen datos reales)
+backups/
+
 # Build del frontend
 frontend/dist/
 

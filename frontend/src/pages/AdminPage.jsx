@@ -586,7 +586,7 @@ function AdminPage() {
                           onClick={() => setIdDetalle(r.id)}
                           aria-label="Ver detalle del reporte"
                         >
-                          <img src={r.foto_url} alt="" loading="lazy" decoding="async" />
+                          <img src={r.miniatura_url || r.foto_url} alt="" loading="lazy" decoding="async" />
                         </button>
                       )}
                     </td>

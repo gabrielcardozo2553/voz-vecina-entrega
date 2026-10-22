@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { MessageCircle, Send, Camera, ImageIcon, X } from 'lucide-react';
 import { comprimirImagen } from '../utils/imagen';
+import { EVENTO_NOVEDADES } from './Campana';
 import '../styles/components/ConversacionReporte.css';
 
 const SUGERENCIAS = [
@@ -22,6 +23,13 @@ function ConversacionReporte({ reporteId, modo, onCambio }) {
   const refCamara = useRef(null);
   const refGaleria = useRef(null);
 
+  // Si llega una novedad (por ejemplo, la otra persona respondió) se actualizan los mensajes en vivo.
+  useEffect(() => {
+    const alLlegarNovedad = () => cargar();
+    window.addEventListener(EVENTO_NOVEDADES, alLlegarNovedad);
+    return () => window.removeEventListener(EVENTO_NOVEDADES, alLlegarNovedad);
+  }, [reporteId]);
+
   // Al cerrar la conversación se libera la vista previa de la foto que quedó pendiente.
   useEffect(() => () => { if (vistaFotoRef.current) URL.revokeObjectURL(vistaFotoRef.current); }, []);
 
@@ -34,7 +42,8 @@ function ConversacionReporte({ reporteId, modo, onCambio }) {
       const res = await axios.get(`/api/reportes/${reporteId}/mensajes`, { headers: encabezado });
       setMensajes(res.data);
     } catch {
-      setMensajes([]);
+      // Si falla una actualización, se conservan los mensajes que ya se veían.
+      setMensajes((actuales) => actuales ?? []);
     }
   };
 
