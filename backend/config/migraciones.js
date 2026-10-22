@@ -11,7 +11,9 @@ async function agregarColumnaSiFalta(tabla, columna, definicion) {
   if (existe.length === 0) {
     await db.query(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion}`);
     console.log(`Se agregó la columna ${tabla}.${columna}`);
+    return true;
   }
+  return false;
 }
 
 async function agregarIndiceSiFalta(tabla, nombre, columnas, unico = false) {
@@ -39,6 +41,25 @@ function prepararBaseDeDatos() {
       await agregarColumnaSiFalta('reportes', 'notas_internas', 'TEXT NULL');
       await agregarColumnaSiFalta('reportes', 'categoria_otro', 'VARCHAR(100) NULL');
       await agregarColumnaSiFalta('reportes', 'miniatura_url', 'VARCHAR(255) NULL');
+
+      // Ingreso con Google/Facebook y confirmación de correo.
+      const columnaNueva = await agregarColumnaSiFalta('usuarios', 'email_verificado', 'TINYINT(1) NOT NULL DEFAULT 0');
+      // Las cuentas que ya existían antes de esta función se consideran confirmadas.
+      if (columnaNueva) await db.query('UPDATE usuarios SET email_verificado = 1');
+      await agregarColumnaSiFalta('usuarios', 'google_id', 'VARCHAR(64) NULL');
+      await agregarColumnaSiFalta('usuarios', 'facebook_id', 'VARCHAR(64) NULL');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS registros_pendientes (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          email VARCHAR(150) NOT NULL,
+          datos TEXT NOT NULL,
+          codigo_hash CHAR(64) NOT NULL,
+          intentos INT NOT NULL DEFAULT 0,
+          vence DATETIME NOT NULL,
+          ultimo_envio DATETIME NOT NULL,
+          UNIQUE KEY uq_pendientes_email (email)
+        )
+      `);
       await db.query(`
         INSERT INTO categorias (nombre)
         SELECT 'Otros' FROM DUAL
@@ -85,6 +106,8 @@ function prepararBaseDeDatos() {
       // Evita cuentas duplicadas aunque dos registros lleguen al mismo tiempo (si ya hay repetidas, se avisa y se sigue).
       await agregarIndiceSiFalta('usuarios', 'uq_usuarios_email', 'email', true)
         .catch((e) => console.warn('No se pudo asegurar email único:', e.message));
+      await agregarIndiceSiFalta('usuarios', 'uq_usuarios_google', 'google_id', true).catch(() => {});
+      await agregarIndiceSiFalta('usuarios', 'uq_usuarios_facebook', 'facebook_id', true).catch(() => {});
       await agregarIndiceSiFalta('usuarios', 'uq_usuarios_dni', 'dni', true)
         .catch((e) => console.warn('No se pudo asegurar DNI único:', e.message));
     })().catch((error) => {

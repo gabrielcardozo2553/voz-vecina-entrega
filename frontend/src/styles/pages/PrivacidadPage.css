@@ -1,0 +1,64 @@
+.privacidad-page {
+  max-width: 720px;
+  margin: 32px auto;
+  padding: 0 var(--espacio-grande);
+}
+
+.privacidad-cabecera {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.privacidad-icono {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primario-claro);
+  color: var(--color-primario);
+}
+
+.privacidad-cabecera h2 {
+  margin: 0;
+  font-family: var(--fuente-titulos);
+  font-size: 2rem;
+  color: var(--color-primario-oscuro);
+}
+
+.privacidad-cabecera p {
+  margin: 6px 0 0;
+  color: var(--color-texto-suave);
+}
+
+.privacidad-page section {
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border: 1px solid #e4e0d3;
+  border-radius: 16px;
+  background-color: white;
+}
+
+.privacidad-page h3 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  color: var(--color-primario-oscuro);
+}
+
+.privacidad-page section p {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--color-texto);
+}
+
+.privacidad-volver {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.privacidad-volver a {
+  font-weight: 600;
+  color: var(--color-primario);
+}

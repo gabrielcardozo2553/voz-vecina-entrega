@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Logo from '../components/Logo';
+import BotonesSociales from '../components/BotonesSociales';
+import VerificarCorreo from '../components/VerificarCorreo';
+import CompletarDatos from '../components/CompletarDatos';
 import { User, Mail, Lock, IdCard, Eye, EyeOff, ShieldCheck, LogIn, UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
 import '../styles/pages/LoginPage.css';
 
@@ -60,6 +63,10 @@ function LoginPage() {
   const [verPassword, setVerPassword] = useState(false);
   const [tocados, setTocados] = useState({});
   const [enviando, setEnviando] = useState(false);
+  // Pasos: 'formulario' -> 'codigo' (confirmar correo) o 'completar' (datos que faltan tras Google/Facebook)
+  const [paso, setPaso] = useState('formulario');
+  const [emailPendiente, setEmailPendiente] = useState('');
+  const [datosSocial, setDatosSocial] = useState(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -89,6 +96,28 @@ function LoginPage() {
     return errores[campo] ? 'invalido' : 'valido';
   };
 
+  const entrar = (datos) => {
+    login(datos.token, datos.usuario);
+    navigate('/');
+  };
+
+  const alResultadoSocial = (datos) => {
+    if (datos.requiereRegistro) {
+      setDatosSocial(datos);
+      setMensaje('');
+      setPaso('completar');
+    } else {
+      entrar(datos);
+    }
+  };
+
+  const volverAlFormulario = () => {
+    setPaso('formulario');
+    setDatosSocial(null);
+    setMensaje('');
+    setMensajeExito(false);
+  };
+
   const cambiarModo = (nuevoModo) => {
     setTocados({});
     setModo(nuevoModo);
@@ -103,7 +132,7 @@ function LoginPage() {
     setMensajeExito(false);
 
     if (modo === 'login' && (!formData.email.trim() || !formData.password)) {
-      setMensaje('Completá tu email y tu contraseña.');
+      setMensaje('Completa tu email y tu contraseña.');
       document.getElementById(formData.email.trim() ? 'password' : 'email')?.focus();
       return;
     }
@@ -127,20 +156,15 @@ function LoginPage() {
 
     try {
       if (modo === 'registro') {
-        await axios.post('/api/auth/registro', { ...formData, aceptaTerminos });
-        setMensaje('¡Registro exitoso! Ahora puedes iniciar sesión.');
-        setMensajeExito(true);
-        setFormData({ ...formData, password: '' });
-        setAceptaTerminos(false);
-        setTocados({});
-        setModo('login');
+        const res = await axios.post('/api/auth/registro', { ...formData, aceptaTerminos });
+        setEmailPendiente(res.data.email || formData.email.trim().toLowerCase());
+        setPaso('codigo');
       } else {
         const res = await axios.post('/api/auth/login', {
           email: formData.email,
           password: formData.password
         });
-        login(res.data.token, res.data.usuario);
-        navigate('/');
+        entrar(res.data);
       }
     } catch (error) {
       setMensaje(error.response?.data?.error || 'Ocurrió un error');
@@ -157,15 +181,36 @@ function LoginPage() {
         <span className="login-logo">
           <Logo size={44} />
         </span>
-        <h2>{esRegistro ? 'Creá tu cuenta' : 'Bienvenido a Voz Vecinal'}</h2>
+        <h2>
+          {paso === 'codigo' ? 'Confirma tu correo'
+            : paso === 'completar' ? 'Un último paso'
+            : esRegistro ? 'Crea tu cuenta' : 'Bienvenido a Voz Vecinal'}
+        </h2>
         <p className="login-subtitulo">
-          {esRegistro
-            ? 'Con tu cuenta puedes reportar problemas y seguir cómo avanzan.'
-            : 'Tu barrio, a un reporte de distancia.'}
+          {paso === 'codigo' ? 'Así nos aseguramos de que tu email es real.'
+            : paso === 'completar' ? 'Necesitamos tu DNI para identificar tus reportes.'
+            : esRegistro
+              ? 'Con tu cuenta puedes reportar problemas y seguir cómo avanzan.'
+              : 'Tu barrio, a un reporte de distancia.'}
         </p>
       </div>
 
       <div className="login-tarjeta">
+        {paso === 'codigo' && (
+          <VerificarCorreo email={emailPendiente} onVerificado={entrar} onVolver={volverAlFormulario} />
+        )}
+
+        {paso === 'completar' && datosSocial && (
+          <CompletarDatos
+            registroToken={datosSocial.registroToken}
+            perfil={datosSocial.perfil}
+            onListo={entrar}
+            onCancelar={volverAlFormulario}
+          />
+        )}
+
+        {paso === 'formulario' && (
+        <>
         <div className="login-tabs" role="group" aria-label="Elegir entre ingresar o registrarse">
           <button
             type="button"
@@ -186,6 +231,12 @@ function LoginPage() {
             Registrarme
           </button>
         </div>
+
+        <BotonesSociales
+          onResultado={alResultadoSocial}
+          onError={(texto) => { setMensajeExito(false); setMensaje(texto); }}
+          deshabilitado={enviando}
+        />
 
         <form onSubmit={handleSubmit} noValidate>
           {esRegistro && (
@@ -324,7 +375,8 @@ function LoginPage() {
               />
               <span>
                 Acepto que mi nombre, apellido y DNI se usen para identificar mis reportes y gestionarlos
-                ante la Municipalidad. Solo el personal autorizado puede verlos.
+                ante la Municipalidad. Solo el personal autorizado puede verlos.{' '}
+                <Link to="/privacidad" target="_blank">Política de privacidad</Link>.
               </span>
             </label>
           )}
@@ -348,6 +400,8 @@ function LoginPage() {
             <ShieldCheck size={18} aria-hidden="true" />
             Tus datos los ve solo el personal municipal autorizado.
           </p>
+        )}
+        </>
         )}
       </div>
     </div>

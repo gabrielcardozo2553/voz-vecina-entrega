@@ -12,6 +12,7 @@ import VerReportesPage from './pages/VerReportesPage';
 import Spinner from './components/Spinner';
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 import LoginPage from './pages/LoginPage';
+import PrivacidadPage from './pages/PrivacidadPage';
 import RutaProtegida from './components/RutaProtegida';
 import BottomNav from './components/layout/BottomNav';
 
@@ -58,6 +59,7 @@ function App() {
         <Route path="/mis-reportes" element={<RutaProtegida><MisReportesPage /></RutaProtegida>} />
         <Route path="/admin" element={<RutaProtegida soloAdmin={true}><Suspense fallback={<Spinner texto="Cargando panel..." />}><AdminPage /></Suspense></RutaProtegida>} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacidad" element={<PrivacidadPage />} />
         <Route
           path="/sesion-vencida"
           element={

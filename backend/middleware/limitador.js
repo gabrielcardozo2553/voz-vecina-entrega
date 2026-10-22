@@ -53,4 +53,26 @@ const limitarMensajes = crearLimitador({
   clave: (req) => `mensajes|${req.usuario?.id || req.ip}`,
 });
 
-module.exports = { limitarLogin, limitarRegistro, limitarReportes, limitarMensajes };
+// Códigos de confirmación: pocos intentos para que no se puedan adivinar.
+const limitarVerificacion = crearLimitador({
+  ventanaMs: 15 * 60 * 1000,
+  maximo: 10,
+  mensaje: 'Demasiados intentos con el código. Espera unos minutos e inténtalo de nuevo.',
+  clave: (req) => `verificar|${req.ip}|${String(req.body?.email || '').toLowerCase()}`,
+});
+
+const limitarReenvio = crearLimitador({
+  ventanaMs: 60 * 60 * 1000,
+  maximo: 6,
+  mensaje: 'Pediste muchos códigos. Espera un rato antes de pedir otro.',
+  clave: (req) => `reenvio|${String(req.body?.email || '').toLowerCase()}|${req.ip}`,
+});
+
+const limitarSocial = crearLimitador({
+  ventanaMs: 15 * 60 * 1000,
+  maximo: 40,
+  mensaje: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
+  clave: (req) => `social|${req.ip}`,
+});
+
+module.exports = { limitarLogin, limitarRegistro, limitarReportes, limitarMensajes, limitarVerificacion, limitarReenvio, limitarSocial };

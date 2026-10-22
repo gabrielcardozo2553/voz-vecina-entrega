@@ -66,6 +66,10 @@ schtasks /create /tn "Backup Voz Vecinal" /tr "node D:\reportes_vecinales\backen
 ```
 Para **restaurar**: importa `base.sql` en MySQL (por ejemplo desde phpMyAdmin) y copia el contenido de la carpeta `uploads` de la copia a `backend/uploads`.
 
+## Ingreso con Google, Facebook y correo
+
+Se puede ingresar con Google, con Facebook o creando una cuenta con email y contraseña (confirmando el correo con un código). Cada método se activa al completar sus datos en el `.env`: la guía paso a paso está en [`docs/CONFIGURAR_INGRESO.md`](docs/CONFIGURAR_INGRESO.md). Después de agregar `nodemailer`, ejecuta `npm install` en `backend`.
+
 ## Probar desde otra red
 
 Con el servidor encendido, en otra terminal:
