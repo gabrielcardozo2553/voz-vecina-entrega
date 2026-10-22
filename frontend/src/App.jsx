@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Home, LogIn } from 'lucide-react';
@@ -9,7 +9,8 @@ import Footer from './components/layout/Footer';
 import ReportarPage from './pages/ReportarPage';
 import MisReportesPage from './pages/MisReportesPage';
 import VerReportesPage from './pages/VerReportesPage';
-import AdminPage from './pages/AdminPage';
+import Spinner from './components/Spinner';
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 import LoginPage from './pages/LoginPage';
 import RutaProtegida from './components/RutaProtegida';
 import BottomNav from './components/layout/BottomNav';
@@ -55,7 +56,7 @@ function App() {
         <Route path="/" element={<ReportarPage />} />
         <Route path="/reportes" element={<VerReportesPage />} />
         <Route path="/mis-reportes" element={<RutaProtegida><MisReportesPage /></RutaProtegida>} />
-        <Route path="/admin" element={<RutaProtegida soloAdmin={true}><AdminPage /></RutaProtegida>} />
+        <Route path="/admin" element={<RutaProtegida soloAdmin={true}><Suspense fallback={<Spinner texto="Cargando panel..." />}><AdminPage /></Suspense></RutaProtegida>} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/sesion-vencida"

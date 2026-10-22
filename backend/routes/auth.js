@@ -59,6 +59,9 @@ router.post('/registro', limitarRegistro, async (req, res) => {
 
     res.status(201).json({ id: result.insertId, mensaje: 'Usuario registrado correctamente' });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Ese email o DNI ya está registrado' });
+    }
     console.error(error);
     res.status(500).json({ error: 'Error al registrar usuario' });
   }

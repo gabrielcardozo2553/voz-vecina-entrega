@@ -38,4 +38,19 @@ const limitarRegistro = crearLimitador({
   clave: (req) => req.ip,
 });
 
-module.exports = { limitarLogin, limitarRegistro };
+// Evita que una misma cuenta llene el servidor de reportes, mensajes o fotos.
+const limitarReportes = crearLimitador({
+  ventanaMs: 60 * 60 * 1000,
+  maximo: 20,
+  mensaje: 'Enviaste muchos reportes en poco tiempo. Inténtalo de nuevo más tarde.',
+  clave: (req) => `reportes|${req.usuario?.id || req.ip}`,
+});
+
+const limitarMensajes = crearLimitador({
+  ventanaMs: 60 * 60 * 1000,
+  maximo: 120,
+  mensaje: 'Enviaste muchos mensajes en poco tiempo. Inténtalo de nuevo más tarde.',
+  clave: (req) => `mensajes|${req.usuario?.id || req.ip}`,
+});
+
+module.exports = { limitarLogin, limitarRegistro, limitarReportes, limitarMensajes };

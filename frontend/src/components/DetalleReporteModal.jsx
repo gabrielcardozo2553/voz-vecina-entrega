@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { X, MapPin, Calendar, Check, ExternalLink, Trash2, Clock, Save, Copy, History } from 'lucide-react';
-import MapaVista from './MapaVista';
+const MapaVista = lazy(() => import('./MapaVista'));
 import ConversacionReporte from './ConversacionReporte';
 import { iconoCategoria, colorCategoria, etiquetaCategoria } from '../utils/categorias';
 import { ESTADOS_TEXTO, ESTADOS_ORDEN } from '../utils/estados';
@@ -51,8 +51,29 @@ function DetalleReporteModal({ reporte, onCerrar, admin = null, esMio = false, o
   useEffect(() => {
     if (!abierto) return undefined;
 
+    const elementoPrevio = document.activeElement;
     const alTeclear = (e) => {
-      if (e.key === 'Escape') cerrarRef.current();
+      if (e.key === 'Escape') {
+        cerrarRef.current();
+        return;
+      }
+      // Mantiene el foco del teclado dentro de la ventana mientras está abierta.
+      if (e.key === 'Tab') {
+        const ventana = document.querySelector('.detalle-contenido');
+        if (!ventana) return;
+        const enfocables = [...ventana.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+          .filter((el) => el.offsetParent !== null);
+        if (!enfocables.length) return;
+        const primero = enfocables[0];
+        const ultimo = enfocables[enfocables.length - 1];
+        if (e.shiftKey && document.activeElement === primero) {
+          e.preventDefault();
+          ultimo.focus();
+        } else if (!e.shiftKey && document.activeElement === ultimo) {
+          e.preventDefault();
+          primero.focus();
+        }
+      }
     };
     document.addEventListener('keydown', alTeclear);
     const overflowAnterior = document.body.style.overflow;
@@ -62,6 +83,10 @@ function DetalleReporteModal({ reporte, onCerrar, admin = null, esMio = false, o
     return () => {
       document.removeEventListener('keydown', alTeclear);
       document.body.style.overflow = overflowAnterior;
+      // Al cerrar, el foco vuelve a donde estaba la persona.
+      if (elementoPrevio && typeof elementoPrevio.focus === 'function' && document.contains(elementoPrevio)) {
+        elementoPrevio.focus();
+      }
     };
   }, [abierto, idReporte]);
 
@@ -269,7 +294,9 @@ function DetalleReporteModal({ reporte, onCerrar, admin = null, esMio = false, o
             <h4>Ubicación</h4>
             {tieneMapa ? (
               <>
-                <MapaVista latitud={reporte.latitud} longitud={reporte.longitud} />
+                <Suspense fallback={<div className="detalle-mapa-cargando">Cargando mapa...</div>}>
+                  <MapaVista latitud={reporte.latitud} longitud={reporte.longitud} />
+                </Suspense>
                 <a
                   className="detalle-enlace-mapa"
                   href={`https://www.openstreetmap.org/?mlat=${reporte.latitud}&mlon=${reporte.longitud}#map=18/${reporte.latitud}/${reporte.longitud}`}

@@ -18,9 +18,14 @@ function ConversacionReporte({ reporteId, modo, onCambio }) {
   const [foto, setFoto] = useState(null);
   const [vistaFoto, setVistaFoto] = useState('');
   const [procesando, setProcesando] = useState(false);
+  const vistaFotoRef = useRef('');
   const refCamara = useRef(null);
   const refGaleria = useRef(null);
 
+  // Al cerrar la conversación se libera la vista previa de la foto que quedó pendiente.
+  useEffect(() => () => { if (vistaFotoRef.current) URL.revokeObjectURL(vistaFotoRef.current); }, []);
+
+  vistaFotoRef.current = vistaFoto;
   const esAdmin = modo === 'admin';
   const encabezado = { Authorization: `Bearer ${localStorage.getItem('token')}` };
 
@@ -112,7 +117,7 @@ function ConversacionReporte({ reporteId, modo, onCambio }) {
 
   const quienEscribe = (m) => {
     if (esAdmin) return m.autor === 'admin' ? (m.autor_nombre || 'Municipalidad') : 'Vecino';
-    return m.autor === 'admin' ? 'Municipalidad' : 'Vos';
+    return m.autor === 'admin' ? 'Municipalidad' : 'Tú';
   };
 
   return (

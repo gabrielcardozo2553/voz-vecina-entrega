@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import { EVENTO_NOVEDADES } from '../components/Campana';
@@ -35,6 +35,8 @@ function AdminPage() {
   const [vecinoAVer, setVecinoAVer] = useState(null);
   const { toast, mostrarToast } = useToast();
   const [exportando, setExportando] = useState('');
+  // Comparar todos los reportes entre sí es costoso: solo se recalcula cuando cambia la lista.
+  const duplicados = useMemo(() => detectarDuplicados(reportes), [reportes]);
   const [parametros, setParametros] = useSearchParams();
 
   const hayModal = Boolean(reporteAEliminar || vecinoAVer);
@@ -213,8 +215,6 @@ function AdminPage() {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-
-  const duplicados = detectarDuplicados(reportes);
 
   const terminos = normalizar(busqueda).split(/\s+/).filter(Boolean);
   const desde = fechaDesde ? new Date(`${fechaDesde}T00:00:00`) : null;
@@ -586,7 +586,7 @@ function AdminPage() {
                           onClick={() => setIdDetalle(r.id)}
                           aria-label="Ver detalle del reporte"
                         >
-                          <img src={r.foto_url} alt="" />
+                          <img src={r.foto_url} alt="" loading="lazy" decoding="async" />
                         </button>
                       )}
                     </td>

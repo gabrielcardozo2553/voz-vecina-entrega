@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/pages/ReportarPage.css';
@@ -7,7 +7,7 @@ import { Send, Check, Heart, LocateFixed, Camera, ImageIcon, X, MapPin, Lightbul
 import { iconoCategoria, colorCategoria, esCategoriaOtros } from '../utils/categorias';
 import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
-import SelectorUbicacion from '../components/SelectorUbicacion';
+const SelectorUbicacion = lazy(() => import('../components/SelectorUbicacion'));
 import { comprimirImagen } from '../utils/imagen';
 
 const TAMANO_MAXIMO_MB = 5;
@@ -50,7 +50,7 @@ function ReportarPage() {
   }, []);
 
   if (!usuario) {
-    return <p>Tienes que <a href="/login">iniciar sesión</a> para reportar un problema.</p>;
+    return <p className="reportar-aviso-sesion">Tienes que <Link to="/login">iniciar sesión</Link> para reportar un problema.</p>;
   }
 
   const categoriaElegida = categorias.find(cat => cat.id === formData.categoria_id);
@@ -145,7 +145,7 @@ function ReportarPage() {
     }
 
     if (eligioOtros && formData.categoria_otro.trim().length < 3) {
-      setMensaje('Contanos de qué se trata el problema en el campo de “Otros”.');
+      setMensaje('Cuéntanos de qué se trata el problema en el campo de “Otros”.');
       document.getElementById('categoria_otro')?.focus();
       return;
     }
@@ -163,7 +163,6 @@ function ReportarPage() {
     if (eligioOtros) data.append('categoria_otro', formData.categoria_otro.trim());
     data.append('descripcion', formData.descripcion);
     data.append('direccion', formData.direccion);
-    data.append('usuario_id', usuario.id);
     if (ubicacion.lat && ubicacion.lng) {
       data.append('latitud', ubicacion.lat);
       data.append('longitud', ubicacion.lng);
@@ -300,11 +299,13 @@ function ReportarPage() {
             {buscandoUbicacion ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}
           </button>
           <div className="mapa-selector">
-            <SelectorUbicacion
-              latitud={ubicacion.lat}
-              longitud={ubicacion.lng}
-              onSeleccionar={(lat, lng) => setUbicacion({ lat, lng })}
-            />
+            <Suspense fallback={<div className="mapa-cargando">Cargando mapa...</div>}>
+              <SelectorUbicacion
+                latitud={ubicacion.lat}
+                longitud={ubicacion.lng}
+                onSeleccionar={(lat, lng) => setUbicacion({ lat, lng })}
+              />
+            </Suspense>
             {ubicacion.lat && (
               <span className="mapa-chip"><span className="mapa-chip-punto" />Punto marcado</span>
             )}
@@ -331,7 +332,7 @@ function ReportarPage() {
           <div className="paso-titulo">
             <span className="paso-numero">3</span>
             <div>
-              <h3>Sumá una foto y contanos</h3>
+              <h3>Suma una foto y cuéntanos</h3>
               <p className="paso-sub">La foto es obligatoria</p>
             </div>
           </div>

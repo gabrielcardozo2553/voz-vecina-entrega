@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require('../config/db');
 const { prepararBaseDeDatos } = require('../config/migraciones');
 const { registrarHistorial } = require('../config/historial');
+const { limitarReportes, limitarMensajes } = require('../middleware/limitador');
 const { notificar, notificarAdmins } = require('../config/notificaciones');
 const multer = require('multer');
 const path = require('path');
@@ -80,7 +81,7 @@ router.get('/reportes', async (req, res) => {
 });
 
 
-router.post('/reportes', verificarToken, (req, res, next) => {
+router.post('/reportes', verificarToken, limitarReportes, (req, res, next) => {
   upload.single('foto')(req, res, (err) => {
     if (err) return errorDeSubida(err, res);
     next();
@@ -114,7 +115,7 @@ router.post('/reportes', verificarToken, (req, res, next) => {
     const categoriaOtro = String(req.body.categoria_otro || '').trim().slice(0, 100);
     if (categorias[0].nombre.toLowerCase() === 'otros' && categoriaOtro.length < 3) {
       borrarArchivo(`/uploads/${req.file.filename}`);
-      return res.status(400).json({ error: 'Contanos de qué se trata el problema' });
+      return res.status(400).json({ error: 'Cuéntanos de qué se trata el problema' });
     }
 
     const foto_url = `/uploads/${req.file.filename}`;
@@ -133,6 +134,7 @@ router.post('/reportes', verificarToken, (req, res, next) => {
     res.status(201).json({ id: result.insertId, mensaje: 'Reporte creado correctamente' });
   } catch (error) {
     console.error(error);
+    if (req.file) borrarArchivo(`/uploads/${req.file.filename}`);
     res.status(500).json({ error: 'Error al crear el reporte' });
   }
 });
@@ -296,7 +298,7 @@ router.get('/reportes/:id/mensajes', verificarToken, async (req, res) => {
   }
 });
 
-router.post('/reportes/:id/mensajes', verificarToken, (req, res, next) => {
+router.post('/reportes/:id/mensajes', verificarToken, limitarMensajes, (req, res, next) => {
   upload.single('foto')(req, res, (err) => {
     if (err) return errorDeSubida(err, res);
     next();

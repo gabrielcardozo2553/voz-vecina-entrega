@@ -5,13 +5,14 @@ const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth'); 
 const { prepararBaseDeDatos } = require('./config/migraciones');
 
-if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16 || process.env.JWT_SECRET === 'tu_clave_secreta_aqui') {
   console.error('Falta JWT_SECRET en el archivo .env (usa una clave larga y aleatoria). El servidor no arranca sin ella.');
   process.exit(1);
 }
 
 const app = express();
 app.disable('x-powered-by');
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
 app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
@@ -25,7 +26,7 @@ app.use(cors(process.env.CORS_ORIGIN ? { origin: process.env.CORS_ORIGIN.split('
 app.use(express.json({ limit: '100kb' }));
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);   
-app.use('/uploads', express.static('uploads', { dotfiles: 'deny', index: false }));
+app.use('/uploads', express.static('uploads', { dotfiles: 'deny', index: false, maxAge: '30d', immutable: true }));
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 

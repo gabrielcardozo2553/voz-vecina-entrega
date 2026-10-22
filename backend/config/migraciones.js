@@ -14,14 +14,14 @@ async function agregarColumnaSiFalta(tabla, columna, definicion) {
   }
 }
 
-async function agregarIndiceSiFalta(tabla, nombre, columnas) {
+async function agregarIndiceSiFalta(tabla, nombre, columnas, unico = false) {
   const [existe] = await db.query(
     `SELECT 1 FROM information_schema.STATISTICS
      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
     [tabla, nombre]
   );
   if (existe.length === 0) {
-    await db.query(`CREATE INDEX ${nombre} ON ${tabla} (${columnas})`);
+    await db.query(`CREATE ${unico ? 'UNIQUE ' : ''}INDEX ${nombre} ON ${tabla} (${columnas})`);
     console.log(`Se agregó el índice ${nombre}`);
   }
 }
@@ -81,6 +81,11 @@ function prepararBaseDeDatos() {
       // Índices para que las listas sigan rápidas cuando haya muchos reportes.
       await agregarIndiceSiFalta('reportes', 'idx_reportes_usuario', 'usuario_id').catch(() => {});
       await agregarIndiceSiFalta('reportes', 'idx_reportes_fecha', 'fecha_creacion').catch(() => {});
+      // Evita cuentas duplicadas aunque dos registros lleguen al mismo tiempo (si ya hay repetidas, se avisa y se sigue).
+      await agregarIndiceSiFalta('usuarios', 'uq_usuarios_email', 'email', true)
+        .catch((e) => console.warn('No se pudo asegurar email único:', e.message));
+      await agregarIndiceSiFalta('usuarios', 'uq_usuarios_dni', 'dni', true)
+        .catch((e) => console.warn('No se pudo asegurar DNI único:', e.message));
     })().catch((error) => {
       preparada = null;
       console.error('No se pudo preparar la base de datos:', describirError(error));
