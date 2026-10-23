@@ -68,6 +68,13 @@ const limitarReenvio = crearLimitador({
   clave: (req) => `reenvio|${String(req.body?.email || '').toLowerCase()}|${req.ip}`,
 });
 
+const limitarRecuperacion = crearLimitador({
+  ventanaMs: 60 * 60 * 1000,
+  maximo: 6,
+  mensaje: 'Pediste muchos códigos. Espera un rato antes de pedir otro.',
+  clave: (req) => `recuperar|${String(req.body?.email || '').toLowerCase()}|${req.ip}`,
+});
+
 const limitarSocial = crearLimitador({
   ventanaMs: 15 * 60 * 1000,
   maximo: 40,
@@ -75,4 +82,4 @@ const limitarSocial = crearLimitador({
   clave: (req) => `social|${req.ip}`,
 });
 
-module.exports = { limitarLogin, limitarRegistro, limitarReportes, limitarMensajes, limitarVerificacion, limitarReenvio, limitarSocial };
+module.exports = { limitarLogin, limitarRegistro, limitarReportes, limitarMensajes, limitarVerificacion, limitarReenvio, limitarRecuperacion, limitarSocial };

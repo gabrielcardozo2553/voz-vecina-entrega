@@ -6,6 +6,7 @@ import Logo from '../components/Logo';
 import BotonesSociales from '../components/BotonesSociales';
 import VerificarCorreo from '../components/VerificarCorreo';
 import CompletarDatos from '../components/CompletarDatos';
+import RecuperarContrasena from '../components/RecuperarContrasena';
 import { User, Mail, Lock, IdCard, Eye, EyeOff, ShieldCheck, LogIn, UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
 import '../styles/pages/LoginPage.css';
 
@@ -63,7 +64,7 @@ function LoginPage() {
   const [verPassword, setVerPassword] = useState(false);
   const [tocados, setTocados] = useState({});
   const [enviando, setEnviando] = useState(false);
-  // Pasos: 'formulario' -> 'codigo' (confirmar correo) o 'completar' (datos que faltan tras Google/Facebook)
+  // Pasos: 'formulario' -> 'codigo' (confirmar correo), 'completar' (datos que faltan tras Google/Facebook) o 'recuperar' (olvidé mi contraseña)
   const [paso, setPaso] = useState('formulario');
   const [emailPendiente, setEmailPendiente] = useState('');
   const [datosSocial, setDatosSocial] = useState(null);
@@ -183,11 +184,13 @@ function LoginPage() {
         </span>
         <h2>
           {paso === 'codigo' ? 'Confirma tu correo'
+            : paso === 'recuperar' ? 'Recupera tu contraseña'
             : paso === 'completar' ? 'Un último paso'
             : esRegistro ? 'Crea tu cuenta' : 'Bienvenido a Voz Vecinal'}
         </h2>
         <p className="login-subtitulo">
           {paso === 'codigo' ? 'Así nos aseguramos de que tu email es real.'
+            : paso === 'recuperar' ? 'Te ayudamos a volver a entrar.'
             : paso === 'completar' ? 'Necesitamos tu DNI para identificar tus reportes.'
             : esRegistro
               ? 'Con tu cuenta puedes reportar problemas y seguir cómo avanzan.'
@@ -198,6 +201,10 @@ function LoginPage() {
       <div className="login-tarjeta">
         {paso === 'codigo' && (
           <VerificarCorreo email={emailPendiente} onVerificado={entrar} onVolver={volverAlFormulario} />
+        )}
+
+        {paso === 'recuperar' && (
+          <RecuperarContrasena emailInicial={formData.email} onListo={entrar} onVolver={volverAlFormulario} />
         )}
 
         {paso === 'completar' && datosSocial && (
@@ -393,6 +400,14 @@ function LoginPage() {
           <button type="submit" className="login-enviar" disabled={enviando}>
             {enviando ? 'Enviando...' : esRegistro ? 'Crear mi cuenta' : 'Ingresar'}
           </button>
+
+          {!esRegistro && (
+            <div className="paso-acciones">
+              <button type="button" className="paso-enlace" onClick={() => { setMensaje(''); setPaso('recuperar'); }}>
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          )}
         </form>
 
         {esRegistro && (

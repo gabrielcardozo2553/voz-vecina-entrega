@@ -8,7 +8,7 @@ const { prepararBaseDeDatos } = require('../config/migraciones');
 const { enviarCodigo } = require('../config/correo');
 const { verificarGoogle, verificarFacebook, googleConfigurado, facebookConfigurado } = require('../config/proveedores');
 const {
-  limitarLogin, limitarRegistro, limitarVerificacion, limitarReenvio, limitarSocial,
+  limitarLogin, limitarRegistro, limitarVerificacion, limitarReenvio, limitarRecuperacion, limitarSocial,
 } = require('../middleware/limitador');
 
 const MINIMO_PASSWORD = 8;
@@ -198,6 +198,101 @@ router.post('/reenviar-codigo', limitarReenvio, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al reenviar el código' });
+  }
+});
+
+// ── Olvidé mi contraseña: código por correo y contraseña nueva ──
+const RESPUESTA_RECUPERAR = { mensaje: 'Si ese email está registrado, te enviamos un código.' };
+
+router.post('/recuperar', limitarRecuperacion, async (req, res) => {
+  try {
+    await prepararBaseDeDatos();
+    const email = texto(req.body.email, 150).toLowerCase();
+    if (!EMAIL_VALIDO.test(email)) {
+      return res.status(400).json({ error: 'Ingresa un email válido' });
+    }
+
+    // La respuesta es siempre la misma, exista o no la cuenta, para no revelar quién está registrado.
+    const [usuarios] = await db.query('SELECT nombre FROM usuarios WHERE email = ?', [email]);
+    if (usuarios.length === 0) return res.json(RESPUESTA_RECUPERAR);
+
+    const [previas] = await db.query(
+      'SELECT TIMESTAMPDIFF(SECOND, ultimo_envio, NOW()) AS segundos FROM recuperaciones WHERE email = ?',
+      [email]
+    );
+    if (previas.length > 0 && previas[0].segundos < SEGUNDOS_ENTRE_ENVIOS) {
+      return res.json(RESPUESTA_RECUPERAR);
+    }
+
+    const codigo = generarCodigo();
+    await db.query(
+      `INSERT INTO recuperaciones (email, codigo_hash, intentos, vence, ultimo_envio)
+       VALUES (?, ?, 0, DATE_ADD(NOW(), INTERVAL ? MINUTE), NOW())
+       ON DUPLICATE KEY UPDATE codigo_hash = VALUES(codigo_hash), intentos = 0,
+         vence = VALUES(vence), ultimo_envio = VALUES(ultimo_envio)`,
+      [email, hashCodigo(codigo), MINUTOS_CODIGO]
+    );
+    try {
+      await enviarCodigo(email, codigo, usuarios[0].nombre, { recuperar: true });
+    } catch (errorCorreo) {
+      console.error('No se pudo enviar el correo:', errorCorreo.message);
+      await db.query('DELETE FROM recuperaciones WHERE email = ?', [email]);
+      return res.status(502).json({ error: 'No pudimos enviar el correo. Inténtalo de nuevo en un momento.' });
+    }
+    res.json(RESPUESTA_RECUPERAR);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al enviar el código' });
+  }
+});
+
+router.post('/restablecer', limitarVerificacion, async (req, res) => {
+  try {
+    await prepararBaseDeDatos();
+    const email = texto(req.body.email, 150).toLowerCase();
+    const codigo = texto(req.body.codigo, 10).replace(/\s/g, '');
+    const { password } = req.body;
+    if (!email || !/^\d{6}$/.test(codigo)) {
+      return res.status(400).json({ error: 'Escribe el código de 6 números que te llegó por correo' });
+    }
+    if (typeof password !== 'string' || password.length < MINIMO_PASSWORD || password.length > 72) {
+      return res.status(400).json({ error: `La contraseña debe tener entre ${MINIMO_PASSWORD} y 72 caracteres` });
+    }
+
+    const [filas] = await db.query(
+      'SELECT *, vence < NOW() AS vencido FROM recuperaciones WHERE email = ?',
+      [email]
+    );
+    const pedido = filas[0];
+    if (!pedido || pedido.vencido) {
+      if (pedido) await db.query('DELETE FROM recuperaciones WHERE id = ?', [pedido.id]);
+      return res.status(400).json({ error: 'El código venció. Pide uno nuevo.' });
+    }
+    if (pedido.intentos >= MAX_INTENTOS_CODIGO) {
+      await db.query('DELETE FROM recuperaciones WHERE id = ?', [pedido.id]);
+      return res.status(400).json({ error: 'Se agotaron los intentos. Pide un código nuevo.' });
+    }
+    if (!codigoCoincide(codigo, pedido.codigo_hash)) {
+      await db.query('UPDATE recuperaciones SET intentos = intentos + 1 WHERE id = ?', [pedido.id]);
+      return res.status(400).json({ error: 'El código no es correcto' });
+    }
+
+    // Poder leer el código demuestra que el correo es de la persona, así que también queda confirmado.
+    const passwordHash = await bcrypt.hash(password, 10);
+    const [resultado] = await db.query(
+      'UPDATE usuarios SET password = ?, email_verificado = 1 WHERE email = ?',
+      [passwordHash, email]
+    );
+    await db.query('DELETE FROM recuperaciones WHERE id = ?', [pedido.id]);
+    if (resultado.affectedRows === 0) {
+      return res.status(400).json({ error: 'No se encontró la cuenta. Pide un código nuevo.' });
+    }
+
+    const [usuarios] = await db.query('SELECT id, nombre, rol FROM usuarios WHERE email = ?', [email]);
+    res.json(emitirSesion(usuarios[0]));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al cambiar la contraseña' });
   }
 });
 

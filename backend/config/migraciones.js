@@ -61,6 +61,17 @@ function prepararBaseDeDatos() {
         )
       `);
       await db.query(`
+        CREATE TABLE IF NOT EXISTS recuperaciones (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          email VARCHAR(150) NOT NULL,
+          codigo_hash CHAR(64) NOT NULL,
+          intentos INT NOT NULL DEFAULT 0,
+          vence DATETIME NOT NULL,
+          ultimo_envio DATETIME NOT NULL,
+          UNIQUE KEY uq_recuperaciones_email (email)
+        )
+      `);
+      await db.query(`
         INSERT INTO categorias (nombre)
         SELECT 'Otros' FROM DUAL
         WHERE NOT EXISTS (SELECT 1 FROM categorias WHERE nombre = 'Otros')
