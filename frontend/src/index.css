@@ -39,7 +39,7 @@ h3 {
 }
 
 a {
-  color: var(--color-primario);
+  color: var(--color-primario-texto);
 }
 
 button {
@@ -47,11 +47,22 @@ button {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-primario);
+  outline: 3px solid var(--color-primario-texto);
   outline-offset: 2px;
 }
 
 .leaflet-container {
   z-index: 0;
   isolation: isolate;
+}
+
+/* El mapa se oscurece junto con el resto de la página; los marcadores no cambian. */
+:root[data-tema='oscuro'] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+  }
 }

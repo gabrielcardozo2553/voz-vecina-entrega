@@ -12,8 +12,8 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: white;
-    border-top: 1px solid #e4e0d3;
+    background-color: var(--color-superficie);
+    border-top: 1px solid var(--c-bor-e4e0d3);
     box-shadow: 0 -4px 14px rgba(11, 63, 74, 0.08);
     padding: 8px 8px calc(10px + env(safe-area-inset-bottom));
     z-index: 100;
@@ -41,13 +41,13 @@
 
   .bottom-nav-link.active {
     background-color: var(--color-primario-claro);
-    color: var(--color-primario-oscuro);
+    color: var(--color-titulo);
     font-weight: 600;
   }
 
   .bottom-nav-link.active svg {
     stroke-width: 2.4;
-    color: var(--color-primario);
+    color: var(--color-primario-texto);
   }
 
   body {

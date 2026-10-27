@@ -9,7 +9,7 @@
 }
 
 .ver-reportes-page h2 {
-  color: var(--color-primario-oscuro);
+  color: var(--color-titulo);
   font-size: 2rem;
   line-height: 1.1;
   margin: 0 0 8px;
@@ -43,10 +43,10 @@
   gap: 8px;
   min-height: 44px;
   padding: 0 14px;
-  border: 1.5px solid #b9ccd0;
+  border: 1.5px solid var(--c-bor-b9ccd0);
   border-radius: 22px;
-  background-color: white;
-  color: var(--color-primario-oscuro);
+  background-color: var(--color-superficie);
+  color: var(--color-titulo);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -68,7 +68,7 @@
   padding: 1px 6px;
   border-radius: 11px;
   background-color: var(--color-primario-claro);
-  color: var(--color-primario-oscuro);
+  color: var(--color-titulo);
   font-size: 0.75rem;
   text-align: center;
 }
@@ -81,11 +81,11 @@
 .filtro-mes {
   min-height: 44px;
   padding: 0 12px;
-  border: 1.5px solid #b9ccd0;
+  border: 1.5px solid var(--c-bor-b9ccd0);
   border-radius: 12px;
   font-family: inherit;
   font-size: 0.9rem;
-  background-color: white;
+  background-color: var(--color-superficie);
   color: var(--color-texto);
   cursor: pointer;
 }
@@ -102,8 +102,8 @@
 }
 
 .reporte-card {
-  background-color: white;
-  border: 1px solid #e4e0d3;
+  background-color: var(--color-superficie);
+  border: 1px solid var(--c-bor-e4e0d3);
   border-radius: 20px;
   box-shadow: 0 2px 10px rgba(11, 63, 74, 0.06);
   overflow: hidden;
@@ -178,7 +178,7 @@
 .reporte-direccion svg,
 .reporte-fecha svg {
   flex: none;
-  color: var(--color-primario);
+  color: var(--color-primario-texto);
 }
 
 .estado-pill {
@@ -187,7 +187,7 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 14px;
-  background-color: white;
+  background-color: var(--color-superficie);
   font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
@@ -206,11 +206,11 @@
   border-radius: 50%;
 }
 
-.estado-pendiente { color: #7a5c05; }
+.estado-pendiente { color: var(--c-txt-7a5c05); }
 .estado-pendiente .estado-punto { background-color: var(--color-acento); }
-.estado-en_proceso { color: var(--color-primario-oscuro); }
+.estado-en_proceso { color: var(--color-titulo); }
 .estado-en_proceso .estado-punto { background-color: var(--color-primario); }
-.estado-resuelto { color: #146c34; }
+.estado-resuelto { color: var(--c-txt-146c34); }
 .estado-resuelto .estado-punto { background-color: #2f9e5a; }
 
 .cargar-mas-contenedor {
@@ -220,9 +220,9 @@
 }
 
 .boton-cargar-mas {
-  background-color: white;
+  background-color: var(--color-superficie);
   border: 2px solid var(--color-primario);
-  color: var(--color-primario);
+  color: var(--color-primario-texto);
   min-height: 48px;
   padding: 0 28px;
   border-radius: 24px;
@@ -236,15 +236,15 @@
   background-color: var(--color-primario-claro);
 }
 
-.color-naranja   { background-color: #ffe3ce; color: #9a4a08; }
-.color-amarillo  { background-color: #fff3c4; color: #7a5c05; }
-.color-verde     { background-color: #d5f2df; color: #146c34; }
-.color-marron    { background-color: #e8d9c8; color: #5a3d1f; }
-.color-celeste   { background-color: #d3ecfb; color: #14567f; }
-.color-rojo      { background-color: #fcdada; color: #962525; }
-.color-verdeagua { background-color: #d6f0ec; color: #145f54; }
-.color-violeta   { background-color: #e6dcf7; color: #5a3286; }
-.color-gris      { background-color: #e8e8e8; color: #444; }
+.color-naranja   { background-color: var(--c-bg-ffe3ce); color: var(--c-txt-9a4a08); }
+.color-amarillo  { background-color: var(--c-bg-fff3c4); color: var(--c-txt-7a5c05); }
+.color-verde     { background-color: var(--c-bg-d5f2df); color: var(--c-txt-146c34); }
+.color-marron    { background-color: var(--c-bg-e8d9c8); color: var(--c-txt-5a3d1f); }
+.color-celeste   { background-color: var(--c-bg-d3ecfb); color: var(--c-txt-14567f); }
+.color-rojo      { background-color: var(--c-bg-fcdada); color: var(--c-txt-962525); }
+.color-verdeagua { background-color: var(--c-bg-d6f0ec); color: var(--c-txt-145f54); }
+.color-violeta   { background-color: var(--c-bg-e6dcf7); color: var(--c-txt-5a3286); }
+.color-gris      { background-color: var(--c-bg-e8e8e8); color: var(--c-txt-444444); }
 
 .estado-vacio {
   display: flex;
@@ -297,5 +297,5 @@
   text-align: center;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #b3261e;
+  color: var(--c-txt-b3261e);
 }

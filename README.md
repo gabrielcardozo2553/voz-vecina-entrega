@@ -70,6 +70,10 @@ Para **restaurar**: importa `base.sql` en MySQL (por ejemplo desde phpMyAdmin) y
 
 Se puede ingresar con Google, con Facebook o creando una cuenta con email y contraseña (confirmando el correo con un código). Cada método se activa al completar sus datos en el `.env`: la guía paso a paso está en [`docs/CONFIGURAR_INGRESO.md`](docs/CONFIGURAR_INGRESO.md). Después de agregar `nodemailer`, ejecuta `npm install` en `backend`.
 
+## Modo nocturno
+
+El botón de luna o sol del encabezado cambia entre modo claro y nocturno. Si la persona no elige, se usa la configuración de su dispositivo. Los colores de ambos modos están en `frontend/src/styles/tema.css` y `frontend/src/index.css`.
+
 ## Probar desde otra red
 
 Con el servidor encendido, en otra terminal:

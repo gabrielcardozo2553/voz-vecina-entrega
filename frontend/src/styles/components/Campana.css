@@ -51,7 +51,7 @@
   max-width: min(300px, calc(100vw - 32px));
   padding: 10px 12px;
   border-radius: 14px;
-  background-color: white;
+  background-color: var(--color-superficie);
   color: var(--color-texto);
   font-size: 0.88rem;
   font-weight: 600;
@@ -89,7 +89,7 @@
   display: flex;
   flex-direction: column;
   border-radius: 18px;
-  background-color: white;
+  background-color: var(--color-superficie);
   color: var(--color-texto);
   box-shadow: 0 12px 36px rgba(11, 63, 74, 0.3);
   overflow: hidden;
@@ -103,13 +103,13 @@
   justify-content: space-between;
   gap: 8px;
   padding: 14px 16px;
-  border-bottom: 1px solid #eeebe0;
+  border-bottom: 1px solid var(--c-bor-eeebe0);
 }
 
 .campana-panel-cabecera h3 {
   margin: 0;
   font-size: 1.05rem;
-  color: var(--color-primario-oscuro);
+  color: var(--color-titulo);
 }
 
 .header .campana-panel-cabecera button {
@@ -121,7 +121,7 @@
   padding: 0 10px;
   border-radius: 16px;
   background-color: var(--color-primario-claro);
-  color: var(--color-primario-oscuro);
+  color: var(--color-titulo);
   font-size: 0.78rem;
   font-weight: 600;
 }
@@ -149,9 +149,9 @@
   min-height: 0;
   padding: 12px 16px;
   border: 0;
-  border-bottom: 1px solid #f1eee4;
+  border-bottom: 1px solid var(--c-bor-f1eee4);
   border-radius: 0;
-  background-color: white;
+  background-color: var(--color-superficie);
   color: var(--color-texto);
   font-family: inherit;
   font-size: 0.9rem;
@@ -161,15 +161,15 @@
 }
 
 .header .campana-item:hover {
-  background-color: #faf8f1;
+  background-color: var(--c-bg-faf8f1);
 }
 
 .header .campana-item-nueva {
-  background-color: #eef6f7;
+  background-color: var(--c-bg-eef6f7);
 }
 
 .header .campana-item-nueva:hover {
-  background-color: #e3f0f2;
+  background-color: var(--c-bg-e3f0f2);
 }
 
 .campana-icono {
@@ -181,13 +181,13 @@
   align-items: center;
   justify-content: center;
   background-color: var(--color-primario-claro);
-  color: var(--color-primario);
+  color: var(--color-primario-texto);
 }
 
-.campana-icono-nuevo_reporte { background-color: #fdf0d3; color: #8a5f05; }
-.campana-icono-respuesta { background-color: #d5f0df; color: #146c34; }
-.campana-icono-mensaje { background-color: #dceef0; color: var(--color-primario-oscuro); }
-.campana-icono-estado { background-color: #e7e3f7; color: #4b3d99; }
+.campana-icono-nuevo_reporte { background-color: var(--c-bg-fdf0d3); color: var(--c-txt-8a5f05); }
+.campana-icono-respuesta { background-color: var(--c-bg-d5f0df); color: var(--c-txt-146c34); }
+.campana-icono-mensaje { background-color: var(--c-bg-dceef0); color: var(--color-titulo); }
+.campana-icono-estado { background-color: var(--c-bg-e7e3f7); color: var(--c-txt-4b3d99); }
 
 .campana-item-texto {
   flex: 1;

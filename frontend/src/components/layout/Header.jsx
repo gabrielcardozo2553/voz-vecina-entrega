@@ -3,6 +3,7 @@ import { LogOut } from 'lucide-react';
 import Nav from './Nav';
 import Logo from '../Logo';
 import Campana from '../Campana';
+import BotonTema from '../BotonTema';
 import { useAuth } from '../../context/AuthContext';
 import { NOMBRE_APP, LOCALIDAD } from '../../config';
 import '../../styles/components/layout/Header.css';
@@ -31,6 +32,7 @@ function Header() {
       </Link>
       <Nav />
       <div className="usuario-info">
+        <BotonTema />
         {usuario ? (
           <>
             <Campana />
@@ -41,9 +43,7 @@ function Header() {
               <span className="usuario-salir-texto">Cerrar sesión</span>
             </button>
           </>
-        ) : (
-          <span className="usuario-info-vacio"></span>
-        )}
+        ) : null}
       </div>
     </header>
   );

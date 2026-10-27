@@ -15,7 +15,7 @@ function MapaVista({ latitud, longitud }) {
       center={[latitud, longitud]}
       zoom={16}
       scrollWheelZoom={false}
-      style={{ height: '200px', width: '100%', borderRadius: '16px', border: '1px solid #d9d6cb' }}
+      style={{ height: '200px', width: '100%', borderRadius: '16px', border: '1px solid var(--color-borde)' }}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

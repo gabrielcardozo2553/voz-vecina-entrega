@@ -28,8 +28,8 @@
   height: 44px;
   border: none;
   border-radius: 50%;
-  background-color: white;
-  color: var(--color-primario-oscuro);
+  background-color: var(--color-superficie);
+  color: var(--color-titulo);
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(11, 63, 74, 0.3);
   z-index: 2;
@@ -70,7 +70,7 @@
   margin: 0;
   font-size: 1.4rem;
   line-height: 1.2;
-  color: var(--color-primario-oscuro);
+  color: var(--color-titulo);
 }
 
 .detalle-datos {
@@ -90,7 +90,7 @@
 
 .detalle-datos svg {
   flex: none;
-  color: var(--color-primario);
+  color: var(--color-primario-texto);
 }
 
 .detalle-progreso {
@@ -100,8 +100,8 @@
   margin: 0;
   padding: 14px;
   list-style: none;
-  background-color: white;
-  border: 1px solid #e4e0d3;
+  background-color: var(--color-superficie);
+  border: 1px solid var(--c-bor-e4e0d3);
   border-radius: 16px;
 }
 
@@ -121,8 +121,8 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  border: 2px solid #c9d6d8;
-  background-color: white;
+  border: 2px solid var(--c-bor-c9d6d8);
+  background-color: var(--color-superficie);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -168,7 +168,7 @@
   gap: 6px;
   align-self: flex-start;
   min-height: 44px;
-  color: var(--color-primario);
+  color: var(--color-primario-texto);
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -177,8 +177,8 @@
   margin: 0;
   padding: 14px;
   border-radius: 12px;
-  background-color: white;
-  border: 1px dashed #b9ccd0;
+  background-color: var(--color-superficie);
+  border: 1px dashed var(--c-bor-b9ccd0);
   font-size: 0.9rem;
   color: var(--color-texto-suave);
 }
@@ -196,8 +196,8 @@
   gap: 14px;
   padding: 14px;
   border-radius: 16px;
-  background-color: #f5f3ec;
-  border: 1px solid #e4e0d3;
+  background-color: var(--c-bg-f5f3ec);
+  border: 1px solid var(--c-bor-e4e0d3);
 }
 
 .detalle-vecino {
@@ -237,7 +237,7 @@
   padding: 0 12px;
   border: 2px solid var(--color-borde);
   border-radius: 12px;
-  background-color: white;
+  background-color: var(--color-superficie);
   font-family: inherit;
   font-size: 1rem;
   color: var(--color-texto);
@@ -253,7 +253,7 @@
   padding: 12px;
   border: 2px solid var(--color-borde);
   border-radius: 12px;
-  background-color: white;
+  background-color: var(--color-superficie);
   font-family: inherit;
   font-size: 1rem;
   color: var(--color-texto);
@@ -302,7 +302,7 @@
   margin: 0;
   font-size: 0.88rem;
   font-weight: 600;
-  color: #146c34;
+  color: var(--c-txt-146c34);
 }
 
 .detalle-eliminar {
@@ -313,8 +313,8 @@
   min-height: 48px;
   border: 0;
   border-radius: 12px;
-  background-color: #fcdada;
-  color: #962525;
+  background-color: var(--c-bg-fcdada);
+  color: var(--c-txt-962525);
   font-family: inherit;
   font-size: 0.95rem;
   font-weight: 600;
@@ -322,7 +322,7 @@
 }
 
 .detalle-eliminar:hover {
-  background-color: #f8c4c4;
+  background-color: var(--c-bg-f8c4c4);
 }
 
 .detalle-repetidos {
@@ -331,8 +331,8 @@
   gap: 8px;
   padding: 14px;
   border-radius: 16px;
-  background-color: #fff8e1;
-  border: 1px solid #f0dfa6;
+  background-color: var(--c-bg-fff8e1);
+  border: 1px solid var(--c-bor-f0dfa6);
 }
 
 .detalle-repetidos h4 {
@@ -341,13 +341,13 @@
   gap: 8px;
   margin: 0;
   font-size: 1rem;
-  color: #5a3f00;
+  color: var(--c-txt-5a3f00);
 }
 
 .detalle-repetidos p {
   margin: 0;
   font-size: 0.88rem;
-  color: #5a3f00;
+  color: var(--c-txt-5a3f00);
 }
 
 .detalle-repetidos ul {
@@ -364,9 +364,9 @@
   width: 100%;
   min-height: 48px;
   padding: 8px 12px;
-  border: 1px solid #f0dfa6;
+  border: 1px solid var(--c-bor-f0dfa6);
   border-radius: 12px;
-  background-color: white;
+  background-color: var(--color-superficie);
   text-align: left;
   font-family: inherit;
   cursor: pointer;
@@ -401,7 +401,7 @@
   gap: 8px;
   margin: 0;
   font-size: 1rem;
-  color: var(--color-primario-oscuro);
+  color: var(--color-titulo);
 }
 
 .detalle-historial ul {
@@ -455,7 +455,7 @@
   justify-content: center;
   height: 200px;
   border-radius: 14px;
-  background-color: #eef6f7;
+  background-color: var(--c-bg-eef6f7);
   color: var(--color-texto-suave);
   font-size: 0.9rem;
 }
