@@ -95,3 +95,22 @@ Pasos:
 ## Lo que esto no resuelve
 
 Google y Facebook confirman **quién es la persona o su correo**, pero **no su DNI**: ese dato lo escribe el vecino. Si la Municipalidad necesita validarlo, hay que hacerlo con otra vía (por ejemplo, cotejarlo en mesa de entradas).
+
+## Verificación anti-bots en el registro (opcional)
+
+Evita que programas automáticos creen cuentas falsas. Usa Cloudflare Turnstile, que es gratis y no pide tarjeta.
+
+1. Entra a https://dash.cloudflare.com y crea una cuenta gratis, o ingresa con la que ya tengas.
+2. En el menú ve a **Turnstile** y pulsa **Agregar widget**.
+3. Nombre: `Voz Vecinal`. En **Nombres de host** agrega `localhost` y, cuando lo tengas, tu dominio. Para probar con el túnel de cloudflared agrega también `trycloudflare.com`.
+4. Modo del widget: **Administrado**. Pulsa **Crear**.
+5. Copia la **clave del sitio** y la **clave secreta**, y agrégalas a `backend/.env`:
+
+```
+TURNSTILE_SITE_KEY=la_clave_del_sitio
+TURNSTILE_SECRET=la_clave_secreta
+```
+
+6. Reinicia el backend. En la pantalla de registro aparecerá la casilla de verificación.
+
+Si no defines estas claves, el registro funciona igual que antes, solo con el límite de intentos. La clave secreta no se comparte ni se sube a GitHub.

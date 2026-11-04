@@ -85,6 +85,8 @@ Te da una dirección `https://...trycloudflare.com` que funciona desde cualquier
 
 ## Seguridad
 
+- El registro puede llevar verificación anti-bots (Cloudflare Turnstile, ver `docs/CONFIGURAR_INGRESO.md`).
+- Cuando el servidor entrega el frontend compilado, la página lleva una política de contenido (CSP) y, con https, HSTS. Si la CSP bloquea algo, pon `CSP_SOLO_REPORTE=1` en `.env`.
 - Las contraseñas se guardan con bcrypt y las sesiones duran 7 días.
 - El login y el registro tienen límite de intentos.
 - Las fotos se validan (solo imágenes reales, hasta 5 MB) y se guardan con nombres aleatorios, junto con una miniatura para que las listas carguen rápido.

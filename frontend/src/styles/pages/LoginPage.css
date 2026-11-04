@@ -402,3 +402,10 @@
   color: var(--color-primario-texto);
   font-weight: 600;
 }
+
+.login-page .captcha {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+  min-height: 0;
+}

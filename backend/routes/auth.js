@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const { prepararBaseDeDatos } = require('../config/migraciones');
 const { enviarCodigo } = require('../config/correo');
+const { captchaConfigurado, verificarCaptcha } = require('../config/captcha');
 const { verificarGoogle, verificarFacebook, googleConfigurado, facebookConfigurado } = require('../config/proveedores');
 const {
   limitarLogin, limitarRegistro, limitarVerificacion, limitarReenvio, limitarRecuperacion, limitarSocial,
@@ -53,6 +54,7 @@ router.get('/proveedores', (req, res) => {
   res.json({
     google: googleConfigurado() ? process.env.GOOGLE_CLIENT_ID : null,
     facebook: facebookConfigurado() ? process.env.FACEBOOK_APP_ID : null,
+    captcha: captchaConfigurado() ? process.env.TURNSTILE_SITE_KEY : null,
   });
 });
 
@@ -60,6 +62,9 @@ router.get('/proveedores', (req, res) => {
 router.post('/registro', limitarRegistro, async (req, res) => {
   try {
     await prepararBaseDeDatos();
+    if (!(await verificarCaptcha(req.body.captcha, req.ip))) {
+      return res.status(400).json({ error: 'No pudimos confirmar que eres una persona. Completa la verificación e inténtalo de nuevo.' });
+    }
     const { dni, password, aceptaTerminos } = req.body;
     const nombre = texto(req.body.nombre, 100);
     const apellido = texto(req.body.apellido, 100);

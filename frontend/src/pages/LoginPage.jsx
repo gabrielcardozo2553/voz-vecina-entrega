@@ -7,6 +7,7 @@ import BotonesSociales from '../components/BotonesSociales';
 import VerificarCorreo from '../components/VerificarCorreo';
 import CompletarDatos from '../components/CompletarDatos';
 import RecuperarContrasena from '../components/RecuperarContrasena';
+import Captcha from '../components/Captcha';
 import { User, Mail, Lock, IdCard, Eye, EyeOff, ShieldCheck, LogIn, UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
 import '../styles/pages/LoginPage.css';
 
@@ -68,6 +69,9 @@ function LoginPage() {
   const [paso, setPaso] = useState('formulario');
   const [emailPendiente, setEmailPendiente] = useState('');
   const [datosSocial, setDatosSocial] = useState(null);
+  const [captchaActivo, setCaptchaActivo] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaVuelta, setCaptchaVuelta] = useState(0);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -120,6 +124,7 @@ function LoginPage() {
   };
 
   const cambiarModo = (nuevoModo) => {
+    setCaptchaToken('');
     setTocados({});
     setModo(nuevoModo);
     setMensaje('');
@@ -151,13 +156,17 @@ function LoginPage() {
         setMensaje('Tienes que aceptar el uso de tus datos para registrarte.');
         return;
       }
+      if (captchaActivo && !captchaToken) {
+        setMensaje('Marca la casilla de verificación para continuar.');
+        return;
+      }
     }
 
     setEnviando(true);
 
     try {
       if (modo === 'registro') {
-        const res = await axios.post('/api/auth/registro', { ...formData, aceptaTerminos });
+        const res = await axios.post('/api/auth/registro', { ...formData, aceptaTerminos, captcha: captchaToken });
         setEmailPendiente(res.data.email || formData.email.trim().toLowerCase());
         setPaso('codigo');
       } else {
@@ -169,6 +178,11 @@ function LoginPage() {
       }
     } catch (error) {
       setMensaje(error.response?.data?.error || 'Ocurrió un error');
+      // La verificación sirve una sola vez: si algo falló, se pide de nuevo.
+      if (modo === 'registro' && captchaActivo) {
+        setCaptchaToken('');
+        setCaptchaVuelta((n) => n + 1);
+      }
     } finally {
       setEnviando(false);
     }
@@ -386,6 +400,10 @@ function LoginPage() {
                 <Link to="/privacidad" target="_blank">Política de privacidad</Link>.
               </span>
             </label>
+          )}
+
+          {esRegistro && (
+            <Captcha key={captchaVuelta} onToken={setCaptchaToken} onConfigurado={setCaptchaActivo} />
           )}
 
           {mensaje && (

@@ -20,9 +20,31 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(self), geolocation=(self), microphone=()',
   });
+  // Con https, el navegador recuerda usar siempre https en este sitio (si entras por http, no se aplica).
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    res.set('Strict-Transport-Security', 'max-age=15552000');
+  }
   next();
 });
+
+// Política de contenido de la página: solo se permiten los servicios que la app usa
+// (Google, Facebook, Cloudflare Turnstile, tipografías y mapas de OpenStreetMap).
+const POLITICA_PAGINA = [
+  "default-src 'self'",
+  "script-src 'self' https://accounts.google.com https://connect.facebook.net https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.googleusercontent.com https://*.fbcdn.net https://www.facebook.com",
+  "connect-src 'self' https://accounts.google.com https://graph.facebook.com https://www.facebook.com https://connect.facebook.net",
+  "frame-src https://accounts.google.com https://www.facebook.com https://web.facebook.com https://challenges.cloudflare.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+const ENCABEZADO_POLITICA = process.env.CSP_SOLO_REPORTE ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
 // Si defines CORS_ORIGIN en .env (por ejemplo https://miweb.com) solo ese sitio puede usar la API.
 app.use(cors(process.env.CORS_ORIGIN ? { origin: process.env.CORS_ORIGIN.split(',') } : undefined));
 app.use(express.json({ limit: '100kb' }));
@@ -44,6 +66,7 @@ if (fs.existsSync(path.join(carpetaFront, 'index.html'))) {
   app.use(express.static(carpetaFront, { index: false, maxAge: '1h' }));
   app.get(/^\/(?!api\/|uploads\/).*/, (req, res) => {
     res.set('Cache-Control', 'no-cache');
+    res.set(ENCABEZADO_POLITICA, POLITICA_PAGINA);
     res.sendFile(path.join(carpetaFront, 'index.html'));
   });
 } else {
