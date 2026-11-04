@@ -27,7 +27,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  // Un reporte lleva dos archivos: la foto y su miniatura.
+  limits: { fileSize: 5 * 1024 * 1024, files: 2 },
   fileFilter: (req, file, cb) => {
     if (EXTENSIONES[file.mimetype]) return cb(null, true);
     const error = new Error('Tipo de archivo no permitido');
@@ -46,6 +47,8 @@ function errorDeSubida(err, res) {
   if (err.code === 'TIPO_INVALIDO') {
     return res.status(400).json({ error: 'El archivo tiene que ser una imagen (JPG, PNG o WEBP)' });
   }
+  // Se deja el motivo real en los registros del servidor para poder diagnosticarlo.
+  console.error('Error al recibir la foto:', err.code || '', err.message);
   return res.status(400).json({ error: 'Error al subir la foto' });
 }
 
