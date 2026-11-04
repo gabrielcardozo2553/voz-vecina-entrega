@@ -1,0 +1,46 @@
+# Despliegue gratuito en Render (ver docs/DESPLIEGUE_GRATIS.md).
+# Un solo servicio: construye el frontend y el servidor Express lo entrega junto con la API.
+services:
+  - type: web
+    name: voz-vecinal
+    runtime: node
+    plan: free
+    region: virginia
+    buildCommand: cd frontend && npm install --include=dev && npm run build && cd ../backend && npm install
+    startCommand: cd backend && node index.js
+    healthCheckPath: /api/salud
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Detrás del proxy de Render, para que los límites de intentos distingan a cada persona.
+      - key: TRUST_PROXY
+        value: 1
+      - key: JWT_SECRET
+        generateValue: true
+      # Base de datos MySQL (Aiven)
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_SSL
+        value: 1
+      - key: DB_SSL_CA
+        sync: false
+      # Fotos (Cloudinary)
+      - key: CLOUDINARY_URL
+        sync: false
+      # Correo (Brevo)
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_REMITENTE
+        sync: false
+      # Correo de la cuenta que será administradora
+      - key: ADMIN_EMAIL
+        sync: false

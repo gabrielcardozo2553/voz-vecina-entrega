@@ -36,6 +36,49 @@ function describirError(error) {
 function prepararBaseDeDatos() {
   if (!preparada) {
     preparada = (async () => {
+      // Tablas principales: solo se crean si la base está vacía (por ejemplo, una base nueva en la nube).
+      // Si ya existen, no se toca nada.
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS categorias (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nombre VARCHAR(100) NOT NULL
+        ) DEFAULT CHARSET=utf8mb4
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS usuarios (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nombre VARCHAR(100) NOT NULL,
+          apellido VARCHAR(100) NOT NULL,
+          dni VARCHAR(10) NOT NULL,
+          email VARCHAR(150) NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          rol VARCHAR(20) NOT NULL DEFAULT 'vecino',
+          consentimiento_fecha DATETIME NULL
+        ) DEFAULT CHARSET=utf8mb4
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS reportes (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          usuario_id INT NOT NULL,
+          categoria_id INT NOT NULL,
+          descripcion TEXT NOT NULL,
+          foto_url VARCHAR(255) NULL,
+          direccion VARCHAR(255) NOT NULL,
+          latitud DECIMAL(10,8) NULL,
+          longitud DECIMAL(11,8) NULL,
+          estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+          fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) DEFAULT CHARSET=utf8mb4
+      `);
+      const [[{ total: totalCategorias }]] = await db.query('SELECT COUNT(*) AS total FROM categorias');
+      if (totalCategorias === 0) {
+        await db.query('INSERT INTO categorias (nombre) VALUES ?', [[
+          ['Baches'], ['Alumbrado público'], ['Basura / Limpieza'], ['Animales sueltos'],
+          ['Inundaciones'], ['Tránsito / Señales'], ['Espacios verdes'], ['Vandalismo'],
+        ]]);
+        console.log('Se cargaron las categorías iniciales');
+      }
+
       await agregarColumnaSiFalta('reportes', 'fecha_resolucion', 'DATETIME NULL');
       await agregarColumnaSiFalta('reportes', 'responsable', 'VARCHAR(100) NULL');
       await agregarColumnaSiFalta('reportes', 'notas_internas', 'TEXT NULL');

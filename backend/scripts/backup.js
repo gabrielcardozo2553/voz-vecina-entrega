@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2');
+const { opcionesConexion } = require('../config/opcionesDb');
 
 const RAIZ = path.join(__dirname, '..');
 require('dotenv').config({ path: path.join(RAIZ, '.env') });
@@ -61,14 +62,7 @@ function rotar(carpetaBase, conservar) {
 }
 
 async function main() {
-  const conexion = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT,
-    charset: 'utf8mb4',
-  }).promise();
+  const conexion = mysql.createConnection(opcionesConexion()).promise();
 
   const carpetaBase = path.resolve(process.env.BACKUP_DIR || path.join(RAIZ, '..', 'backups'));
   const destino = path.join(carpetaBase, sello());
