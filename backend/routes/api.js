@@ -10,8 +10,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { publicar, borrar, DIR_UPLOADS } = require('../config/almacen');
 
-const DIR_UPLOADS = path.join(__dirname, '..', 'uploads');
+fs.mkdirSync(DIR_UPLOADS, { recursive: true });
 
 const EXTENSIONES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
 
@@ -35,11 +36,8 @@ const upload = multer({
   }
 });
 
-function borrarArchivo(url) {
-  if (!url || !url.startsWith('/uploads/')) return;
-  const archivo = path.join(DIR_UPLOADS, path.basename(url));
-  fs.unlink(archivo, () => {});
-}
+// Borra una foto de la carpeta local o de la nube, según dónde esté guardada.
+const borrarArchivo = borrar;
 
 function errorDeSubida(err, res) {
   if (err.code === 'LIMIT_FILE_SIZE') {
@@ -157,6 +155,7 @@ router.post('/reportes', verificarToken, limitarReportes, (req, res, next) => {
     next();
   });
 }, verificarImagenes, async (req, res) => {
+  const publicadas = [];
   try {
     const { categoria_id, latitud, longitud } = req.body;
     const descripcion = String(req.body.descripcion || '').trim().slice(0, 2000);
@@ -186,8 +185,10 @@ router.post('/reportes', verificarToken, limitarReportes, (req, res, next) => {
     const esOtros = categorias[0].nombre.toLowerCase() === 'otros';
     if (esOtros && categoriaOtro.length < 3) return rechazar(400, 'Cuéntanos de qué se trata el problema');
 
-    const foto_url = `/uploads/${archivoFoto.filename}`;
-    const miniatura_url = archivoMini ? `/uploads/${archivoMini.filename}` : null;
+    const foto_url = await publicar(archivoFoto);
+    publicadas.push(foto_url);
+    const miniatura_url = archivoMini ? await publicar(archivoMini) : null;
+    if (miniatura_url) publicadas.push(miniatura_url);
 
     const [result] = await db.query(
       `INSERT INTO reportes (usuario_id, categoria_id, categoria_otro, descripcion, foto_url, miniatura_url, direccion, latitud, longitud)
@@ -205,6 +206,7 @@ router.post('/reportes', verificarToken, limitarReportes, (req, res, next) => {
   } catch (error) {
     console.error(error);
     borrarSubidas(req);
+    publicadas.forEach(borrarArchivo);
     res.status(500).json({ error: 'Error al crear el reporte' });
   }
 });
@@ -374,9 +376,13 @@ router.post('/reportes/:id/mensajes', verificarToken, limitarMensajes, (req, res
     next();
   });
 }, verificarImagenes, async (req, res) => {
+  let fotoUrl = null;
   try {
     res.on('finish', () => {
-      if (res.statusCode >= 400 && req.file) borrarArchivo(`/uploads/${req.file.filename}`);
+      if (res.statusCode >= 400 && req.file) {
+        borrarArchivo(`/uploads/${req.file.filename}`);
+        if (fotoUrl) borrarArchivo(fotoUrl);
+      }
     });
     await prepararBaseDeDatos();
     const { id } = req.params;
@@ -400,7 +406,7 @@ router.post('/reportes/:id/mensajes', verificarToken, limitarMensajes, (req, res
       }
     }
 
-    const fotoUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    fotoUrl = req.file ? await publicar(req.file) : null;
 
     await db.query(
       'INSERT INTO mensajes_reporte (reporte_id, autor, autor_nombre, texto, foto_url) VALUES (?, ?, ?, ?, ?)',

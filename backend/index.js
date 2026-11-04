@@ -6,6 +6,7 @@ const cors = require('cors');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const { prepararBaseDeDatos } = require('./config/migraciones');
+const db = require('./config/db');
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16 || process.env.JWT_SECRET === 'tu_clave_secreta_aqui') {
   console.error('Falta JWT_SECRET en el archivo .env (usa una clave larga y aleatoria). El servidor no arranca sin ella.');
@@ -36,7 +37,7 @@ const POLITICA_PAGINA = [
   "script-src 'self' https://accounts.google.com https://connect.facebook.net https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.googleusercontent.com https://*.fbcdn.net https://www.facebook.com",
+  "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://res.cloudinary.com https://*.googleusercontent.com https://*.fbcdn.net https://www.facebook.com",
   "connect-src 'self' https://accounts.google.com https://graph.facebook.com https://www.facebook.com https://connect.facebook.net",
   "frame-src https://accounts.google.com https://www.facebook.com https://web.facebook.com https://challenges.cloudflare.com",
   "object-src 'none'",
@@ -56,6 +57,16 @@ app.use('/uploads', (req, res, next) => {
   res.set('Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox");
   next();
 }, express.static(path.join(__dirname, 'uploads'), { dotfiles: 'deny', index: false, maxAge: '30d', immutable: true }));
+
+// Comprobación de que el servidor y la base responden. Sirve también para los avisos de "¿sigue vivo?" de los hostings.
+app.get('/api/salud', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.set('Cache-Control', 'no-store').json({ ok: true });
+  } catch {
+    res.status(503).json({ ok: false });
+  }
+});
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
@@ -84,7 +95,19 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 2000;
+// Si defines ADMIN_EMAIL en .env y esa cuenta ya existe con el correo confirmado, pasa a ser administradora.
+async function promoverAdministrador() {
+  const correo = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  if (!correo) return;
+  const [res] = await db.query(
+    "UPDATE usuarios SET rol = 'admin' WHERE email = ? AND email_verificado = 1 AND rol <> 'admin'",
+    [correo]
+  );
+  if (res.affectedRows > 0) console.log(`La cuenta ${correo} ahora es administradora`);
+}
+
 prepararBaseDeDatos()
+  .then(promoverAdministrador)
   .catch(() => {})
   .finally(() => {
     app.listen(PORT, () => {

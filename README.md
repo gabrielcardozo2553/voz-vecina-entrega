@@ -52,6 +52,10 @@ node index.js
 ```
 Si existe `frontend/dist`, el mismo servidor entrega la web y la API en http://localhost:3000. Es más rápido, más seguro que el modo desarrollo y alcanza con un solo túnel.
 
+## Ponerlo en línea gratis
+
+La guía paso a paso está en [`docs/DESPLIEGUE_GRATIS.md`](docs/DESPLIEGUE_GRATIS.md): Render (la app), Aiven (MySQL), Cloudinary (fotos) y Brevo (correo). El archivo `render.yaml` ya deja el servicio preparado.
+
 ## Copias de seguridad
 
 ```

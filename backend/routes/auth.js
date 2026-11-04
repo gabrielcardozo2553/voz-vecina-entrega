@@ -23,6 +23,13 @@ const HASH_FALSO = bcrypt.hashSync('relleno-para-igualar-tiempos', 10);
 const EMAIL_VALIDO = /^[a-z0-9._%+-]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
 const texto = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
+// Si en .env defines ADMIN_EMAIL, la cuenta con ese correo (ya confirmado) nace como administrador.
+const rolInicial = (email, verificado) => (
+  verificado && process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL.trim().toLowerCase() === String(email).toLowerCase()
+    ? 'admin'
+    : 'vecino'
+);
+
 const SECRETO_REGISTRO = () => `${process.env.JWT_SECRET}:registro-social`;
 
 function emitirSesion(usuario) {
@@ -156,9 +163,9 @@ router.post('/verificar-email', limitarVerificacion, async (req, res) => {
     }
 
     const [resultado] = await db.query(
-      `INSERT INTO usuarios (nombre, apellido, dni, email, password, email_verificado, consentimiento_fecha)
-       VALUES (?, ?, ?, ?, ?, 1, NOW())`,
-      [datos.nombre, datos.apellido, datos.dni, email, datos.passwordHash]
+      `INSERT INTO usuarios (nombre, apellido, dni, email, password, rol, email_verificado, consentimiento_fecha)
+       VALUES (?, ?, ?, ?, ?, ?, 1, NOW())`,
+      [datos.nombre, datos.apellido, datos.dni, email, datos.passwordHash, rolInicial(email, true)]
     );
     await db.query('DELETE FROM registros_pendientes WHERE id = ?', [pendiente.id]);
 
@@ -409,9 +416,9 @@ router.post('/completar-registro', limitarSocial, async (req, res) => {
     const claveInutilizable = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
 
     const [resultado] = await db.query(
-      `INSERT INTO usuarios (nombre, apellido, dni, email, password, ${columna}, email_verificado, consentimiento_fecha)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [nombre, apellido, dniLimpio, email, claveInutilizable, datos.id, datos.emailVerificado ? 1 : 0]
+      `INSERT INTO usuarios (nombre, apellido, dni, email, password, ${columna}, rol, email_verificado, consentimiento_fecha)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [nombre, apellido, dniLimpio, email, claveInutilizable, datos.id, rolInicial(email, Boolean(datos.emailVerificado)), datos.emailVerificado ? 1 : 0]
     );
 
     const [usuarios] = await db.query('SELECT id, nombre, rol FROM usuarios WHERE id = ?', [resultado.insertId]);

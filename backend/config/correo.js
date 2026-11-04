@@ -4,9 +4,40 @@
 //   MAIL_HOST y MAIL_PORT  -> opcionales, por defecto smtp.gmail.com y 465
 //   MAIL_FROM              -> opcional, nombre que ve quien recibe (por defecto "Voz Vecinal")
 // Si no está configurado, el código se muestra en la terminal del servidor (útil para probar en tu PC).
+//
+// Hosting gratuito (Render y similares): bloquea los puertos SMTP, así que ahí se usa Brevo por HTTPS:
+//   BREVO_API_KEY          -> clave de la API de Brevo
+//   MAIL_REMITENTE         -> correo remitente ya verificado en Brevo
+//   MAIL_FROM              -> nombre que ve quien recibe (por defecto "Voz Vecinal")
+// Si BREVO_API_KEY está definida, se usa Brevo; si no, SMTP con MAIL_USER y MAIL_PASS.
+
+const usaBrevo = () => Boolean(process.env.BREVO_API_KEY && process.env.MAIL_REMITENTE);
 
 function correoConfigurado() {
-  return Boolean(process.env.MAIL_USER && process.env.MAIL_PASS);
+  return usaBrevo() || Boolean(process.env.MAIL_USER && process.env.MAIL_PASS);
+}
+
+async function enviarPorBrevo({ para, asunto, texto, html }) {
+  const respuesta = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: process.env.MAIL_FROM || 'Voz Vecinal', email: process.env.MAIL_REMITENTE },
+      to: [{ email: para }],
+      subject: asunto,
+      textContent: texto,
+      htmlContent: html,
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!respuesta.ok) {
+    const detalle = await respuesta.text().catch(() => '');
+    throw new Error(`Brevo respondió ${respuesta.status}: ${detalle.slice(0, 200)}`);
+  }
 }
 
 let transporte = null;
@@ -45,10 +76,15 @@ async function enviarCodigo(para, codigo, nombre = '', { recuperar = false } = {
     return { enviado: false, simulado: true };
   }
   const { texto, html } = plantilla(nombre, codigo, recuperar);
+  const asunto = recuperar ? `Código para cambiar tu contraseña: ${codigo}` : `Tu código de Voz Vecinal: ${codigo}`;
+  if (usaBrevo()) {
+    await enviarPorBrevo({ para, asunto, texto, html });
+    return { enviado: true };
+  }
   await obtenerTransporte().sendMail({
     from: `"${process.env.MAIL_FROM || 'Voz Vecinal'}" <${process.env.MAIL_USER}>`,
     to: para,
-    subject: recuperar ? `Código para cambiar tu contraseña: ${codigo}` : `Tu código de Voz Vecinal: ${codigo}`,
+    subject: asunto,
     text: texto,
     html,
   });
