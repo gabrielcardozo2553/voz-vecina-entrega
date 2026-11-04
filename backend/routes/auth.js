@@ -18,7 +18,9 @@ const MAX_INTENTOS_CODIGO = 5;
 const SEGUNDOS_ENTRE_ENVIOS = 60;
 // Hash de relleno: se compara igual aunque el email no exista, para que la demora no delate qué cuentas existen.
 const HASH_FALSO = bcrypt.hashSync('relleno-para-igualar-tiempos', 10);
-const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Solo letras, números y los símbolos habituales: así no entran comillas, paréntesis, comas, <> ni otros
+// caracteres con significado especial en las direcciones de correo (ni dominios con caracteres raros).
+const EMAIL_VALIDO = /^[a-z0-9._%+-]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
 const texto = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 const SECRETO_REGISTRO = () => `${process.env.JWT_SECRET}:registro-social`;
