@@ -181,13 +181,10 @@ function ReportarPage() {
     if (foto) data.append('foto', foto);
     if (miniatura) data.append('miniatura', miniatura);
 
-    const token = localStorage.getItem('token');
-
     try {
       await axios.post('/api/reportes', data, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'multipart/form-data'
         }
       });
       setEnviado(true);

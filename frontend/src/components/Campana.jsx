@@ -37,10 +37,9 @@ function Campana() {
   const esAdmin = usuario?.rol === 'admin';
 
   const cargar = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!localStorage.getItem('usuario')) return;
     try {
-      const res = await axios.get('/api/notificaciones', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('/api/notificaciones');
       const nuevas = res.data.noLeidas;
 
       if (anterior.current === null) {
@@ -105,13 +104,11 @@ function Campana() {
 
   if (!usuario) return null;
 
-  const encabezado = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
-
   const marcarTodas = async () => {
     setDatos((d) => ({ noLeidas: 0, items: d.items.map((n) => ({ ...n, leida: 1 })) }));
     anterior.current = 0;
     try {
-      await axios.put('/api/notificaciones/leer-todas', {}, { headers: encabezado() });
+      await axios.put('/api/notificaciones/leer-todas', {});
     } catch { cargar(); }
   };
 
@@ -124,7 +121,7 @@ function Campana() {
         items: d.items.map((x) => (x.id === n.id ? { ...x, leida: 1 } : x)),
       }));
       anterior.current = Math.max(0, (anterior.current || 1) - 1);
-      axios.put(`/api/notificaciones/${n.id}/leida`, {}, { headers: encabezado() }).catch(() => {});
+      axios.put(`/api/notificaciones/${n.id}/leida`, {}).catch(() => {});
     }
     if (n.reporte_id) {
       navigate(`${esAdmin ? '/admin' : '/mis-reportes'}?reporte=${n.reporte_id}`);

@@ -35,11 +35,10 @@ function ConversacionReporte({ reporteId, modo, onCambio }) {
 
   vistaFotoRef.current = vistaFoto;
   const esAdmin = modo === 'admin';
-  const encabezado = { Authorization: `Bearer ${localStorage.getItem('token')}` };
 
   const cargar = async () => {
     try {
-      const res = await axios.get(`/api/reportes/${reporteId}/mensajes`, { headers: encabezado });
+      const res = await axios.get(`/api/reportes/${reporteId}/mensajes`);
       setMensajes(res.data);
     } catch {
       // Si falla una actualización, se conservan los mensajes que ya se veían.
@@ -101,7 +100,7 @@ function ConversacionReporte({ reporteId, modo, onCambio }) {
       datos.append('texto', texto);
       if (foto) datos.append('foto', foto);
       await axios.post(`/api/reportes/${reporteId}/mensajes`, datos, {
-        headers: { ...encabezado, 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       setTexto('');
       quitarFoto();

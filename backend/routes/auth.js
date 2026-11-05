@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const { NOMBRE_COOKIE } = require('../middleware/auth');
 const { cifrarDni, descifrarDni, huellaDni } = require('../config/cifrado');
 const { prepararBaseDeDatos } = require('../config/migraciones');
 const { enviarCodigo } = require('../config/correo');
@@ -33,13 +34,21 @@ const rolInicial = (email, verificado) => (
 
 const SECRETO_REGISTRO = () => `${process.env.JWT_SECRET}:registro-social`;
 
-function emitirSesion(usuario) {
+// Crea la sesión: el token va en una cookie HttpOnly (el JavaScript de la página no puede leerla ni robarla).
+function emitirSesion(res, usuario) {
   const token = jwt.sign(
     { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol },
     process.env.JWT_SECRET,
     { expiresIn: '7d', algorithm: 'HS256' }
   );
-  return { token, usuario: { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol } };
+  res.cookie(NOMBRE_COOKIE, token, {
+    httpOnly: true,
+    secure: Boolean(res.req.secure),
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+  return { usuario: { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol } };
 }
 
 const generarCodigo = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
@@ -176,7 +185,7 @@ router.post('/verificar-email', limitarVerificacion, async (req, res) => {
     await db.query('DELETE FROM registros_pendientes WHERE id = ?', [pendiente.id]);
 
     const [usuarios] = await db.query('SELECT id, nombre, rol FROM usuarios WHERE id = ?', [resultado.insertId]);
-    res.status(201).json(emitirSesion(usuarios[0]));
+    res.status(201).json(emitirSesion(res, usuarios[0]));
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Ese email o DNI ya está registrado' });
@@ -309,7 +318,7 @@ router.post('/restablecer', limitarVerificacion, async (req, res) => {
     }
 
     const [usuarios] = await db.query('SELECT id, nombre, rol FROM usuarios WHERE email = ?', [email]);
-    res.json(emitirSesion(usuarios[0]));
+    res.json(emitirSesion(res, usuarios[0]));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al cambiar la contraseña' });
@@ -343,7 +352,7 @@ async function responderConIdentidad(res, identidad) {
     }
   }
 
-  if (usuarios.length > 0) return res.json(emitirSesion(usuarios[0]));
+  if (usuarios.length > 0) return res.json(emitirSesion(res, usuarios[0]));
 
   // Persona nueva: faltan el DNI y el consentimiento. Se devuelve un pase corto para completar el registro.
   const registroToken = jwt.sign(
@@ -438,7 +447,7 @@ router.post('/completar-registro', limitarSocial, async (req, res) => {
     );
 
     const [usuarios] = await db.query('SELECT id, nombre, rol FROM usuarios WHERE id = ?', [resultado.insertId]);
-    res.status(201).json(emitirSesion(usuarios[0]));
+    res.status(201).json(emitirSesion(res, usuarios[0]));
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Esa cuenta, email o DNI ya está registrado. Prueba ingresando.' });
@@ -469,11 +478,16 @@ router.post('/login', limitarLogin, async (req, res) => {
       return res.status(400).json({ error: 'Email o contraseña incorrectos' });
     }
 
-    res.json(emitirSesion(usuario));
+    res.json(emitirSesion(res, usuario));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al iniciar sesión' });
   }
+});
+
+router.post('/salir', (req, res) => {
+  res.clearCookie(NOMBRE_COOKIE, { httpOnly: true, secure: Boolean(req.secure), sameSite: 'lax', path: '/' });
+  res.json({ mensaje: 'Sesión cerrada' });
 });
 
 module.exports = router;

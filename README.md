@@ -90,6 +90,7 @@ Te da una dirección `https://...trycloudflare.com` que funciona desde cualquier
 ## Seguridad
 
 - El registro puede llevar verificación anti-bots (Cloudflare Turnstile, ver `docs/CONFIGURAR_INGRESO.md`).
+- La sesión va en una cookie HttpOnly (el código de la página no puede leerla) y se cierra al cambiar la contraseña. Con `DNI_KEY` en `.env`, los DNI se guardan cifrados en la base. `npm test` en `backend` corre las pruebas automáticas.
 - Cuando el servidor entrega el frontend compilado, la página lleva una política de contenido (CSP) y, con https, HSTS. Si la CSP bloquea algo, pon `CSP_SOLO_REPORTE=1` en `.env`.
 - Las contraseñas se guardan con bcrypt y las sesiones duran 7 días.
 - El login y el registro tienen límite de intentos.

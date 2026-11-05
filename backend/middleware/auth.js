@@ -1,16 +1,40 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
+const NOMBRE_COOKIE = 'vv_sesion';
+
+function leerCookie(req, nombre) {
+  const crudo = req.headers.cookie;
+  if (!crudo) return null;
+  for (const par of crudo.split(';')) {
+    const i = par.indexOf('=');
+    if (i > 0 && par.slice(0, i).trim() === nombre) {
+      try { return decodeURIComponent(par.slice(i + 1).trim()); } catch { return null; }
+    }
+  }
+  return null;
+}
+
+// Con la sesión en cookie, un sitio ajeno no debe poder hacer acciones en nombre de la persona:
+// si el navegador indica de qué sitio viene la petición, tiene que ser este mismo sitio.
+function origenAjeno(req) {
+  const origen = req.headers.origin;
+  if (!origen || ['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return false;
+  try { return new URL(origen).host !== req.headers.host; } catch { return true; }
+}
+
 
 async function verificarToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No autorizado, falta el token' });
+  // La sesión viaja en una cookie que el JavaScript de la página no puede leer. También se acepta
+  // el encabezado Authorization (útil para pruebas con herramientas externas).
+  let token = leerCookie(req, NOMBRE_COOKIE);
+  if (token) {
+    if (origenAjeno(req)) return res.status(403).json({ error: 'Solicitud no permitida' });
+  } else {
+    const [esquema, valor] = String(req.headers.authorization || '').split(' ');
+    if (esquema === 'Bearer' && valor) token = valor;
   }
-
-  const [esquema, token] = authHeader.split(' ');
-  if (esquema !== 'Bearer' || !token) {
+  if (!token) {
     return res.status(401).json({ error: 'No autorizado, falta el token' });
   }
 
@@ -44,4 +68,4 @@ function verificarAdmin(req, res, next) {
   next();
 }
 
-module.exports = { verificarToken, verificarAdmin };
+module.exports = { verificarToken, verificarAdmin, NOMBRE_COOKIE };

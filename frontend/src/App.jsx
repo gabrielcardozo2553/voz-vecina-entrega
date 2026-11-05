@@ -36,7 +36,7 @@ function ControlDeSesion() {
       (respuesta) => respuesta,
       (error) => {
         // Solo cuenta como "sesión vencida" si había una sesión iniciada (no al equivocarse al ingresar).
-        if (error.response?.status === 401 && localStorage.getItem('token')) {
+        if (error.response?.status === 401 && localStorage.getItem('usuario')) {
           logout();
           navigate('/sesion-vencida', { replace: true });
         }

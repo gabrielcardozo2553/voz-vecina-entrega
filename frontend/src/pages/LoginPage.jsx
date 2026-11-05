@@ -102,7 +102,7 @@ function LoginPage() {
   };
 
   const entrar = (datos) => {
-    login(datos.token, datos.usuario);
+    login(datos.usuario);
     navigate('/');
   };
 

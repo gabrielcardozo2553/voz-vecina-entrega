@@ -18,12 +18,9 @@ function MisReportesPage() {
   const [parametros, setParametros] = useSearchParams();
 
   const cargarReportes = (silencioso = false) => {
-    const token = localStorage.getItem('token');
     if (!silencioso) setCargando(true);
     setError(false);
-    axios.get('/api/mis-reportes', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    axios.get('/api/mis-reportes')
       .then(res => setReportes(res.data))
       .catch(err => {
         console.error(err);

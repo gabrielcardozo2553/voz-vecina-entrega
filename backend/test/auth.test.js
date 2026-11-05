@@ -64,3 +64,34 @@ test('solo los administradores pasan el control de administrador', () => {
   assert.equal(llamar('admin').paso, true);
   assert.equal(llamar('vecino').codigo, 403);
 });
+
+// ── Sesión en cookie ──
+async function ejecutarConCookie(cabeceras, metodo = 'GET') {
+  const salida = {};
+  const res = { status(c) { salida.codigo = c; return this; }, json(b) { salida.cuerpo = b; return this; } };
+  const req = { method: metodo, headers: cabeceras };
+  await verificarToken(req, res, () => { salida.paso = true; });
+  return salida;
+}
+
+test('la sesión también se acepta desde la cookie', async () => {
+  cuenta = { nombre: 'Ana', rol: 'vecino', sesion_desde: null };
+  const r = await ejecutarConCookie({ cookie: `otra=1; vv_sesion=${token()}; mas=2`, host: 'sitio.com' });
+  assert.equal(r.paso, true);
+});
+
+test('con cookie, una acción que viene de otro sitio se rechaza', async () => {
+  cuenta = { nombre: 'Ana', rol: 'vecino', sesion_desde: null };
+  const r = await ejecutarConCookie({ cookie: `vv_sesion=${token()}`, host: 'sitio.com', origin: 'https://malo.com' }, 'POST');
+  assert.equal(r.codigo, 403);
+});
+
+test('con cookie, una acción del mismo sitio pasa', async () => {
+  cuenta = { nombre: 'Ana', rol: 'vecino', sesion_desde: null };
+  const r = await ejecutarConCookie({ cookie: `vv_sesion=${token()}`, host: 'sitio.com', origin: 'https://sitio.com' }, 'POST');
+  assert.equal(r.paso, true);
+});
+
+test('sin cookie ni encabezado se rechaza', async () => {
+  assert.equal((await ejecutarConCookie({ host: 'sitio.com' })).codigo, 401);
+});

@@ -55,10 +55,7 @@ function AdminPage() {
   }, [hayModal]);
 
   const cargarReportes = () => {
-    const token = localStorage.getItem('token');
-    axios.get('/api/admin/reportes', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    axios.get('/api/admin/reportes')
       .then(res => {
         setReportes(res.data);
         setTotalEnBase(Number(res.headers['x-total-reportes']) || res.data.length);
@@ -105,11 +102,9 @@ function AdminPage() {
 
   const cambiarEstado = async (id, nuevoEstado) => {
     try {
-      const token = localStorage.getItem('token');
       await axios.put(
         `/api/reportes/${id}/estado`,
-        { estado: nuevoEstado },
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        { estado: nuevoEstado }
       );
       cargarReportes();
       mostrarToast('Estado actualizado correctamente', 'exito');
@@ -121,10 +116,7 @@ function AdminPage() {
 
   const guardarGestion = async (id, datos) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/reportes/${id}/gestion`, datos, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await axios.put(`/api/reportes/${id}/gestion`, datos);
       cargarReportes();
       mostrarToast('Datos guardados', 'exito');
     } catch (error) {
@@ -134,20 +126,14 @@ function AdminPage() {
   };
 
   const cargarHistorial = async (id) => {
-    const token = localStorage.getItem('token');
-    const res = await axios.get(`/api/admin/reportes/${id}/historial`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const res = await axios.get(`/api/admin/reportes/${id}/historial`);
     return res.data;
   };
 
   const aplicarLote = async (cambios, textoExito) => {
     setAplicandoLote(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.put('/api/reportes-lote', { ids: idsSeleccionados, ...cambios }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await axios.put('/api/reportes-lote', { ids: idsSeleccionados, ...cambios });
       cargarReportes();
       setSeleccion(new Set());
       setEstadoLote('');
@@ -172,10 +158,7 @@ function AdminPage() {
 
   const eliminarReporte = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/reportes/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await axios.delete(`/api/reportes/${id}`);
       cargarReportes();
       mostrarToast('Reporte eliminado correctamente', 'exito');
     } catch (error) {
