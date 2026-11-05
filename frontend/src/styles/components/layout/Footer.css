@@ -20,3 +20,29 @@
   font-weight: 600;
   text-decoration: underline;
 }
+
+.footer .instalar-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0 auto 12px;
+  padding: 0 18px;
+  border: 2px solid var(--color-primario);
+  border-radius: 22px;
+  background-color: transparent;
+  color: var(--color-primario-texto);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.footer .instalar-app:hover {
+  background-color: var(--color-primario-claro);
+}
+
+.footer .instalar-app-ios p {
+  max-width: 320px;
+  margin: 0 auto 12px;
+  font-size: 0.85rem;
+}

@@ -74,7 +74,14 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Ruta no encontrada'
 const carpetaFront = path.join(__dirname, '..', 'frontend', 'dist');
 if (fs.existsSync(path.join(carpetaFront, 'index.html'))) {
   app.use('/assets', express.static(path.join(carpetaFront, 'assets'), { maxAge: '1y', immutable: true }));
-  app.use(express.static(carpetaFront, { index: false, maxAge: '1h' }));
+  app.use(express.static(carpetaFront, {
+    index: false,
+    maxAge: '1h',
+    // El service worker y el manifiesto deben revisarse siempre, para que las actualizaciones lleguen.
+    setHeaders: (res, archivo) => {
+      if (/(sw\.js|manifest\.webmanifest)$/.test(archivo)) res.set('Cache-Control', 'no-cache');
+    },
+  }));
   app.get(/^\/(?!api\/|uploads\/).*/, (req, res) => {
     res.set('Cache-Control', 'no-cache');
     res.set(ENCABEZADO_POLITICA, POLITICA_PAGINA);
