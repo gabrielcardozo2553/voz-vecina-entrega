@@ -107,3 +107,13 @@ Cada vez que se sube un cambio a la rama `main` de GitHub, Render reconstruye y 
 ## Pasar a un plan de pago
 
 No hay que cambiar el código. En Render se cambia el plan del servicio por uno de pago, y se puede pasar la base de datos a un plan de pago de Aiven o a otro proveedor cambiando las variables `DB_*`. El servicio deja de dormirse y conviene sumar un disco o seguir con Cloudinary para las fotos.
+
+## Copias de seguridad (hazlas seguido)
+
+El plan gratuito de Aiven no garantiza respaldos, así que la copia queda de tu parte:
+
+1. En tu PC, en `backend/.env`, pon los datos de Aiven (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL=1`). Si ya usas `.env` para la base local, guarda esa línea aparte para no perderla.
+2. Desde la carpeta `backend`, ejecuta `npm run backup`.
+3. Se crea una carpeta con `base.sql` (usuarios, reportes, mensajes). Guárdala en un lugar privado: tiene datos reales y DNI. Las fotos están en Cloudinary, que las conserva por su cuenta.
+
+Conviene hacerlo una vez por semana, y siempre antes de cambiar algo importante.

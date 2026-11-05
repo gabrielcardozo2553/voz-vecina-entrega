@@ -294,8 +294,8 @@ router.post('/restablecer', limitarVerificacion, async (req, res) => {
     // Poder leer el código demuestra que el correo es de la persona, así que también queda confirmado.
     const passwordHash = await bcrypt.hash(password, 10);
     const [resultado] = await db.query(
-      'UPDATE usuarios SET password = ?, email_verificado = 1 WHERE email = ?',
-      [passwordHash, email]
+      'UPDATE usuarios SET password = ?, email_verificado = 1, sesion_desde = ? WHERE email = ?',
+      [passwordHash, Math.floor(Date.now() / 1000), email]
     );
     await db.query('DELETE FROM recuperaciones WHERE id = ?', [pedido.id]);
     if (resultado.affectedRows === 0) {
@@ -318,12 +318,22 @@ async function responderConIdentidad(res, identidad) {
 
   // Google confirma que el email es de la persona: si ya había una cuenta con ese email, se vincula.
   if (usuarios.length === 0 && identidad.proveedor === 'google') {
-    [usuarios] = await db.query('SELECT id, nombre, rol FROM usuarios WHERE email = ?', [identidad.email]);
+    [usuarios] = await db.query('SELECT id, nombre, rol, email_verificado FROM usuarios WHERE email = ?', [identidad.email]);
     if (usuarios.length > 0) {
-      await db.query(
-        'UPDATE usuarios SET google_id = ?, email_verificado = 1 WHERE id = ? AND google_id IS NULL',
-        [identidad.id, usuarios[0].id]
-      );
+      if (!usuarios[0].email_verificado) {
+        // Esa cuenta se creó con un email que nadie había confirmado (por ejemplo, tipeado en un registro con Facebook):
+        // quien la creó pudo no ser el dueño del correo. Se le quita todo acceso previo y queda solo para el dueño real.
+        const claveNueva = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+        await db.query(
+          'UPDATE usuarios SET google_id = ?, email_verificado = 1, facebook_id = NULL, password = ?, sesion_desde = ? WHERE id = ?',
+          [identidad.id, claveNueva, Math.floor(Date.now() / 1000), usuarios[0].id]
+        );
+      } else {
+        await db.query(
+          'UPDATE usuarios SET google_id = ?, email_verificado = 1 WHERE id = ? AND google_id IS NULL',
+          [identidad.id, usuarios[0].id]
+        );
+      }
     }
   }
 

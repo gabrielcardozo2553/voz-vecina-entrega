@@ -91,6 +91,8 @@ function prepararBaseDeDatos() {
       if (columnaNueva) await db.query('UPDATE usuarios SET email_verificado = 1');
       await agregarColumnaSiFalta('usuarios', 'google_id', 'VARCHAR(64) NULL');
       await agregarColumnaSiFalta('usuarios', 'facebook_id', 'VARCHAR(64) NULL');
+      // Las sesiones iniciadas antes de este momento (en segundos) dejan de valer: se usa al cambiar la contraseña.
+      await agregarColumnaSiFalta('usuarios', 'sesion_desde', 'BIGINT NULL');
       await db.query(`
         CREATE TABLE IF NOT EXISTS registros_pendientes (
           id INT AUTO_INCREMENT PRIMARY KEY,
