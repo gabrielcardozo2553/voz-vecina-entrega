@@ -1,4 +1,5 @@
 const db = require('./db');
+const { cifradoActivo, estaCifrado, cifrarDni, descifrarDni, huellaDni } = require('./cifrado');
 
 let preparada = null;
 
@@ -28,6 +29,41 @@ async function agregarIndiceSiFalta(tabla, nombre, columnas, unico = false) {
   }
 }
 
+// El DNI cifrado ocupa más lugar que 8 números: se amplía la columna si hace falta.
+async function ampliarColumnaDni() {
+  const [col] = await db.query(
+    `SELECT CHARACTER_MAXIMUM_LENGTH AS largo FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'dni'`
+  );
+  if (col.length > 0 && Number(col[0].largo) < 120) {
+    await db.query('ALTER TABLE usuarios MODIFY dni VARCHAR(120) NOT NULL');
+    console.log('Se amplió la columna usuarios.dni');
+  }
+}
+
+// Con DNI_KEY activa, los DNI que estaban en texto plano se cifran una sola vez.
+async function cifrarDnisPendientes() {
+  const [filas] = await db.query('SELECT id, dni, dni_hash FROM usuarios');
+  if (!cifradoActivo()) {
+    if (filas.some((f) => estaCifrado(f.dni))) {
+      console.warn('ATENCIÓN: hay DNI cifrados pero falta DNI_KEY: no se podrán leer hasta que la vuelvas a poner.');
+    }
+    return;
+  }
+  let cifrados = 0;
+  for (const f of filas) {
+    const plano = descifrarDni(f.dni);
+    if (plano === null || (estaCifrado(f.dni) && f.dni_hash)) continue;
+    try {
+      await db.query('UPDATE usuarios SET dni = ?, dni_hash = ? WHERE id = ?', [cifrarDni(plano), huellaDni(plano), f.id]);
+      cifrados += 1;
+    } catch (e) {
+      console.warn(`No se pudo cifrar el DNI del usuario ${f.id}:`, e.message);
+    }
+  }
+  if (cifrados > 0) console.log(`Se cifraron ${cifrados} DNI`);
+}
+
 function describirError(error) {
   const interno = error.errors && error.errors[0];
   return error.message || error.code || (interno && (interno.message || interno.code)) || String(error);
@@ -49,7 +85,7 @@ function prepararBaseDeDatos() {
           id INT AUTO_INCREMENT PRIMARY KEY,
           nombre VARCHAR(100) NOT NULL,
           apellido VARCHAR(100) NOT NULL,
-          dni VARCHAR(10) NOT NULL,
+          dni VARCHAR(120) NOT NULL,
           email VARCHAR(150) NOT NULL,
           password VARCHAR(255) NOT NULL,
           rol VARCHAR(20) NOT NULL DEFAULT 'vecino',
@@ -159,6 +195,10 @@ function prepararBaseDeDatos() {
       // Índices para que las listas sigan rápidas cuando haya muchos reportes.
       await agregarIndiceSiFalta('reportes', 'idx_reportes_usuario', 'usuario_id').catch(() => {});
       await agregarIndiceSiFalta('reportes', 'idx_reportes_fecha', 'fecha_creacion').catch(() => {});
+      await ampliarColumnaDni();
+      await agregarColumnaSiFalta('usuarios', 'dni_hash', 'CHAR(64) NULL');
+      await agregarIndiceSiFalta('usuarios', 'uq_usuarios_dni_hash', 'dni_hash', true).catch(() => {});
+      await cifrarDnisPendientes().catch((e) => console.warn('No se pudieron cifrar los DNI:', e.message));
       // Evita cuentas duplicadas aunque dos registros lleguen al mismo tiempo (si ya hay repetidas, se avisa y se sigue).
       await agregarIndiceSiFalta('usuarios', 'uq_usuarios_email', 'email', true)
         .catch((e) => console.warn('No se pudo asegurar email único:', e.message));

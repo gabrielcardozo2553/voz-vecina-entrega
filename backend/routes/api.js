@@ -11,6 +11,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { publicar, borrar, DIR_UPLOADS } = require('../config/almacen');
+const { descifrarDni } = require('../config/cifrado');
 
 fs.mkdirSync(DIR_UPLOADS, { recursive: true });
 
@@ -592,7 +593,7 @@ router.get('/admin/reportes', verificarToken, verificarAdmin, async (req, res) =
     // El panel trabaja con los reportes más recientes; si hay más, se informa el total para avisarlo en pantalla.
     const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM reportes');
     res.set('X-Total-Reportes', String(total));
-    res.json(rows);
+    res.json(rows.map((r) => ({ ...r, usuario_dni: descifrarDni(r.usuario_dni) })));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al obtener reportes' });

@@ -61,6 +61,7 @@ Si Brevo te pide completar un formulario de activación de la cuenta, hazlo: sin
 | `BREVO_API_KEY` | La clave del paso 3 |
 | `MAIL_REMITENTE` | El correo que verificaste en Brevo |
 | `ADMIN_EMAIL` | Tu correo: esa cuenta será la administradora |
+| `DNI_KEY` | Una frase larga y aleatoria (16 caracteres o más). Con ella los DNI se guardan cifrados. **Guárdala también fuera de Render** (en un gestor de contraseñas): si se pierde, los DNI no se pueden recuperar. No la cambies después |
 
    `JWT_SECRET` se genera solo.
 4. Pulsa **Apply**. La primera vez tarda varios minutos en construir. Cuando termine, Render te muestra la dirección, algo como `https://voz-vecinal-xxxx.onrender.com`.

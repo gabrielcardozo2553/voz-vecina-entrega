@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const { cifrarDni, descifrarDni, huellaDni } = require('../config/cifrado');
 const { prepararBaseDeDatos } = require('../config/migraciones');
 const { enviarCodigo } = require('../config/correo');
 const { captchaConfigurado, verificarCaptcha } = require('../config/captcha');
@@ -53,7 +54,11 @@ function codigoCoincide(codigo, hashGuardado) {
 async function emailODniOcupado(email, dni) {
   const [porEmail] = await db.query('SELECT id FROM usuarios WHERE email = ?', [email]);
   if (porEmail.length > 0) return 'Ese email ya está registrado';
-  const [porDni] = await db.query('SELECT id FROM usuarios WHERE dni = ?', [dni]);
+  // Se busca por la huella (DNI cifrado) y también por el valor directo (cuentas anteriores al cifrado).
+  const huella = huellaDni(dni);
+  const [porDni] = huella
+    ? await db.query('SELECT id FROM usuarios WHERE dni_hash = ? OR dni = ?', [huella, dni])
+    : await db.query('SELECT id FROM usuarios WHERE dni = ?', [dni]);
   if (porDni.length > 0) return 'Ese DNI ya está registrado';
   return null;
 }
@@ -101,7 +106,7 @@ router.post('/registro', limitarRegistro, async (req, res) => {
 
     const codigo = generarCodigo();
     const datos = JSON.stringify({
-      nombre, apellido, dni: dniLimpio, passwordHash: await bcrypt.hash(password, 10),
+      nombre, apellido, dni: cifrarDni(dniLimpio), passwordHash: await bcrypt.hash(password, 10),
     });
 
     await db.query(
@@ -156,16 +161,17 @@ router.post('/verificar-email', limitarVerificacion, async (req, res) => {
     }
 
     const datos = JSON.parse(pendiente.datos);
-    const ocupado = await emailODniOcupado(email, datos.dni);
+    const dniPlano = descifrarDni(datos.dni);
+    const ocupado = await emailODniOcupado(email, dniPlano);
     if (ocupado) {
       await db.query('DELETE FROM registros_pendientes WHERE id = ?', [pendiente.id]);
       return res.status(400).json({ error: ocupado });
     }
 
     const [resultado] = await db.query(
-      `INSERT INTO usuarios (nombre, apellido, dni, email, password, rol, email_verificado, consentimiento_fecha)
-       VALUES (?, ?, ?, ?, ?, ?, 1, NOW())`,
-      [datos.nombre, datos.apellido, datos.dni, email, datos.passwordHash, rolInicial(email, true)]
+      `INSERT INTO usuarios (nombre, apellido, dni, dni_hash, email, password, rol, email_verificado, consentimiento_fecha)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
+      [datos.nombre, datos.apellido, cifrarDni(dniPlano), huellaDni(dniPlano), email, datos.passwordHash, rolInicial(email, true)]
     );
     await db.query('DELETE FROM registros_pendientes WHERE id = ?', [pendiente.id]);
 
@@ -426,9 +432,9 @@ router.post('/completar-registro', limitarSocial, async (req, res) => {
     const claveInutilizable = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
 
     const [resultado] = await db.query(
-      `INSERT INTO usuarios (nombre, apellido, dni, email, password, ${columna}, rol, email_verificado, consentimiento_fecha)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [nombre, apellido, dniLimpio, email, claveInutilizable, datos.id, rolInicial(email, Boolean(datos.emailVerificado)), datos.emailVerificado ? 1 : 0]
+      `INSERT INTO usuarios (nombre, apellido, dni, dni_hash, email, password, ${columna}, rol, email_verificado, consentimiento_fecha)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [nombre, apellido, cifrarDni(dniLimpio), huellaDni(dniLimpio), email, claveInutilizable, datos.id, rolInicial(email, Boolean(datos.emailVerificado)), datos.emailVerificado ? 1 : 0]
     );
 
     const [usuarios] = await db.query('SELECT id, nombre, rol FROM usuarios WHERE id = ?', [resultado.insertId]);
