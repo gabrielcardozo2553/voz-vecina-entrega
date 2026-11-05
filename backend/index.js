@@ -16,6 +16,8 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16 || process.env
 const app = express();
 app.disable('x-powered-by');
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
+// En Render siempre hay un proxy delante: sin esto, todos los visitantes compartirían la misma IP en los límites de intentos.
+else if (process.env.RENDER) app.set('trust proxy', 1);
 app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
@@ -74,6 +76,8 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Ruta no encontrada'
 const carpetaFront = path.join(__dirname, '..', 'frontend', 'dist');
 if (fs.existsSync(path.join(carpetaFront, 'index.html'))) {
   app.use('/assets', express.static(path.join(carpetaFront, 'assets'), { maxAge: '1y', immutable: true }));
+  // Un archivo de /assets que ya no existe (por una versión anterior) debe dar 404, no la página de inicio.
+  app.use('/assets', (req, res) => res.status(404).end());
   app.use(express.static(carpetaFront, {
     index: false,
     maxAge: '1h',

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const db = require('../config/db');
 
 
 function verificarToken(req, res, next) {
@@ -23,11 +24,22 @@ function verificarToken(req, res, next) {
 }
 
 
-function verificarAdmin(req, res, next) {
-  if (req.usuario.rol !== 'admin') {
-    return res.status(403).json({ error: 'No tienes permisos de administrador' });
+// El rol se confirma en la base de datos (no solo en el token), para que quitar el permiso de administrador
+// o borrar una cuenta tenga efecto de inmediato y no recién cuando venza la sesión.
+async function verificarAdmin(req, res, next) {
+  try {
+    if (req.usuario.rol !== 'admin') {
+      return res.status(403).json({ error: 'No tienes permisos de administrador' });
+    }
+    const [filas] = await db.query('SELECT rol FROM usuarios WHERE id = ?', [req.usuario.id]);
+    if (filas.length === 0 || filas[0].rol !== 'admin') {
+      return res.status(403).json({ error: 'No tienes permisos de administrador' });
+    }
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No se pudo comprobar el permiso' });
   }
-  next();
 }
 
 module.exports = { verificarToken, verificarAdmin };

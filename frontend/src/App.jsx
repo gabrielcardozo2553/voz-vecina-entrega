@@ -7,12 +7,13 @@ import PantallaEstado from './components/PantallaEstado';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import ReportarPage from './pages/ReportarPage';
-import MisReportesPage from './pages/MisReportesPage';
-import VerReportesPage from './pages/VerReportesPage';
 import Spinner from './components/Spinner';
+// Cada pantalla se descarga solo cuando se entra en ella: la primera carga queda más liviana.
+const MisReportesPage = lazy(() => import('./pages/MisReportesPage'));
+const VerReportesPage = lazy(() => import('./pages/VerReportesPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
-import LoginPage from './pages/LoginPage';
-import PrivacidadPage from './pages/PrivacidadPage';
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const PrivacidadPage = lazy(() => import('./pages/PrivacidadPage'));
 import RutaProtegida from './components/RutaProtegida';
 import BottomNav from './components/layout/BottomNav';
 
@@ -34,7 +35,8 @@ function ControlDeSesion() {
     const id = axios.interceptors.response.use(
       (respuesta) => respuesta,
       (error) => {
-        if (error.response?.status === 401) {
+        // Solo cuenta como "sesión vencida" si había una sesión iniciada (no al equivocarse al ingresar).
+        if (error.response?.status === 401 && localStorage.getItem('token')) {
           logout();
           navigate('/sesion-vencida', { replace: true });
         }
@@ -53,11 +55,12 @@ function App() {
       <ControlDeSesion />
       <VolverArriba />
       <Header />
+      <Suspense fallback={<Spinner />}>
       <Routes>
         <Route path="/" element={<ReportarPage />} />
         <Route path="/reportes" element={<VerReportesPage />} />
         <Route path="/mis-reportes" element={<RutaProtegida><MisReportesPage /></RutaProtegida>} />
-        <Route path="/admin" element={<RutaProtegida soloAdmin={true}><Suspense fallback={<Spinner texto="Cargando panel..." />}><AdminPage /></Suspense></RutaProtegida>} />
+        <Route path="/admin" element={<RutaProtegida soloAdmin={true}><AdminPage /></RutaProtegida>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/privacidad" element={<PrivacidadPage />} />
         <Route
@@ -83,6 +86,7 @@ function App() {
           }
         />
       </Routes>
+      </Suspense>
       <Footer />
       <BottomNav />
     </BrowserRouter>
