@@ -571,6 +571,8 @@ router.delete('/reportes/:id', verificarToken, verificarAdmin, async (req, res) 
   }
 });
 
+const MAX_REPORTES_PANEL = 2000;
+
 router.get('/admin/reportes', verificarToken, verificarAdmin, async (req, res) => {
   try {
     await prepararBaseDeDatos();
@@ -584,8 +586,12 @@ router.get('/admin/reportes', verificarToken, verificarAdmin, async (req, res) =
       FROM reportes r
       JOIN categorias c ON r.categoria_id = c.id
       JOIN usuarios u ON r.usuario_id = u.id
-      ORDER BY r.fecha_creacion DESC
+      ORDER BY r.fecha_creacion DESC, r.id DESC
+      LIMIT ${MAX_REPORTES_PANEL}
     `);
+    // El panel trabaja con los reportes más recientes; si hay más, se informa el total para avisarlo en pantalla.
+    const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM reportes');
+    res.set('X-Total-Reportes', String(total));
     res.json(rows);
   } catch (error) {
     console.error(error);

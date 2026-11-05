@@ -17,6 +17,7 @@ import { useToast } from '../hooks/useToast';
 
 function AdminPage() {
   const [reportes, setReportes] = useState([]);
+  const [totalEnBase, setTotalEnBase] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
@@ -60,6 +61,7 @@ function AdminPage() {
     })
       .then(res => {
         setReportes(res.data);
+        setTotalEnBase(Number(res.headers['x-total-reportes']) || res.data.length);
         setErrorCarga(false);
       })
       .catch(err => {
@@ -406,6 +408,12 @@ function AdminPage() {
           </button>
         </div>
       </div>
+
+      {totalEnBase > reportes.length && (
+        <p className="admin-resultado" role="status">
+          El panel muestra los {reportes.length} reportes más recientes de {totalEnBase}. Los más antiguos se conservan en la base de datos.
+        </p>
+      )}
 
       {hayFiltros && (
         <p className="admin-resultado" role="status">

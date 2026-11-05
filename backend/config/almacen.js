@@ -86,4 +86,4 @@ function borrar(url) {
   }).catch((error) => console.error('No se pudo borrar la foto de la nube:', error.message));
 }
 
-module.exports = { nubeConfigurada, publicar, borrar, DIR_UPLOADS };
+module.exports = { nubeConfigurada, publicar, borrar, firmar, DIR_UPLOADS };
