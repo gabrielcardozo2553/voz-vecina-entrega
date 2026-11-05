@@ -1,6 +1,6 @@
 // Service worker de Voz Vecinal: permite instalar la app y acelera la carga.
 // No guarda datos de la API ni fotos: lo que ve la persona siempre viene del servidor.
-const CACHE = 'voz-vecinal-v1';
+const CACHE = 'voz-vecinal-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -47,4 +47,35 @@ self.addEventListener('fetch', (evento) => {
         .catch(() => caches.match('/'))
     );
   }
+});
+
+// Avisos push: llegan aunque la app esté cerrada.
+self.addEventListener('push', (evento) => {
+  let datos = {};
+  try { datos = evento.data ? evento.data.json() : {}; } catch { /* sin contenido legible */ }
+  evento.waitUntil(
+    self.registration.showNotification(datos.titulo || 'Voz Vecinal', {
+      body: datos.cuerpo || 'Tienes una novedad',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: datos.etiqueta || undefined,
+      data: { url: datos.url || '/' },
+    })
+  );
+});
+
+// Al tocar el aviso: se enfoca la app si ya está abierta, o se abre en la pantalla del reporte.
+self.addEventListener('notificationclick', (evento) => {
+  evento.notification.close();
+  const destino = new URL((evento.notification.data && evento.notification.data.url) || '/', self.location.origin).href;
+  evento.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ventanas) => {
+      for (const v of ventanas) {
+        if (v.url.startsWith(self.location.origin) && 'focus' in v) {
+          return v.focus().then(() => ('navigate' in v ? v.navigate(destino) : undefined));
+        }
+      }
+      return self.clients.openWindow(destino);
+    })
+  );
 });

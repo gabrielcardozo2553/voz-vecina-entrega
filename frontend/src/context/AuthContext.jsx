@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useCallback, useMemo } from 'react';
 import axios from 'axios';
+import { desactivarAvisos } from '../utils/push';
 
 const AuthContext = createContext();
 
@@ -42,8 +43,9 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     borrarSesionGuardada();
     setUsuario(null);
-    // Se pide al servidor que borre la cookie de sesión (si falla, igual se cierra en este dispositivo).
-    axios.post('/api/auth/salir').catch(() => {});
+    // Se quitan los avisos de este dispositivo (para que no le lleguen a la próxima persona que lo use)
+    // y se pide al servidor que borre la cookie de sesión. Si algo falla, igual se cierra en este dispositivo.
+    desactivarAvisos().finally(() => axios.post('/api/auth/salir').catch(() => {}));
   }, []);
 
   // Valor estable: así los componentes no se vuelven a dibujar (ni se reengancha el control de sesión) sin necesidad.

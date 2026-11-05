@@ -1,4 +1,5 @@
 const db = require('./db');
+const { enviarPush } = require('./push');
 
 const MAX_TEXTO = 250;
 
@@ -13,7 +14,16 @@ async function notificar(usuarioIds, { tipo, reporteId = null, texto }) {
     );
   } catch (error) {
     console.error('No se pudo guardar la notificación:', error.message);
+    return;
   }
+  // Además del aviso dentro de la app, se manda al celular o computadora (si activaron los avisos).
+  const paraAdmin = tipo === 'nuevo_reporte' || tipo === 'respuesta';
+  enviarPush(ids, {
+    titulo: 'Voz Vecinal',
+    cuerpo: String(texto).slice(0, MAX_TEXTO),
+    url: reporteId ? `${paraAdmin ? '/admin' : '/mis-reportes'}?reporte=${reporteId}` : '/',
+    etiqueta: reporteId ? `reporte-${reporteId}` : undefined,
+  });
 }
 
 // Avisa a todos los administradores, menos a quien hizo la acción.

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Bell, CheckCheck, FilePlus2, MessageCircle, MessageSquareReply, RefreshCw, PartyPopper, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import AvisosPush from './AvisosPush';
 import '../styles/components/Campana.css';
 
 const INTERVALO_MS = 20000;
@@ -196,6 +197,8 @@ function Campana() {
               })}
             </ul>
           )}
+
+          <AvisosPush />
         </div>
       )}
     </div>

@@ -118,3 +118,11 @@ El plan gratuito de Aiven no garantiza respaldos, así que la copia queda de tu 
 3. Se crea una carpeta con `base.sql` (usuarios, reportes, mensajes). Guárdala en un lugar privado: tiene datos reales y DNI. Las fotos están en Cloudinary, que las conserva por su cuenta.
 
 Conviene hacerlo una vez por semana, y siempre antes de cambiar algo importante.
+
+## Avisos en el celular (notificaciones push)
+
+1. En tu PC, dentro de la carpeta `backend`: `npm install` y luego `npm run claves-push`. Te muestra dos claves.
+2. En Render → Environment agrega `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` (con `mailto:` y tu correo, por ejemplo `mailto:tucorreo@gmail.com`).
+3. Cada persona activa los avisos desde la campana 🔔 → «Activar avisos en este dispositivo».
+
+Notas: en iPhone solo funciona con la app instalada en la pantalla de inicio (iOS 16.4 o más). Guarda la clave privada fuera de GitHub. Si cambias las claves, cada persona debe volver a activar los avisos.

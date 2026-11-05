@@ -5,6 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
+const pushRoutes = require('./routes/push');
 const { prepararBaseDeDatos } = require('./config/migraciones');
 const db = require('./config/db');
 
@@ -53,6 +54,7 @@ app.use(cors(process.env.CORS_ORIGIN ? { origin: process.env.CORS_ORIGIN.split('
 app.use(express.json({ limit: '100kb' }));
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/push', pushRoutes);
 
 // Las fotos se sirven como simples imágenes: la política impide que cualquier otro contenido se ejecute.
 app.use('/uploads', (req, res, next) => {

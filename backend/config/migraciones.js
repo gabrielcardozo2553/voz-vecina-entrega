@@ -192,6 +192,19 @@ function prepararBaseDeDatos() {
           INDEX idx_notificaciones_usuario (usuario_id, leida, fecha)
         )
       `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS suscripciones_push (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          usuario_id INT NOT NULL,
+          endpoint_hash CHAR(64) NOT NULL,
+          endpoint VARCHAR(1000) NOT NULL,
+          p256dh VARCHAR(255) NOT NULL,
+          auth VARCHAR(255) NOT NULL,
+          fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_push_endpoint (endpoint_hash),
+          INDEX idx_push_usuario (usuario_id)
+        ) DEFAULT CHARSET=utf8mb4
+      `);
       // Índices para que las listas sigan rápidas cuando haya muchos reportes.
       await agregarIndiceSiFalta('reportes', 'idx_reportes_usuario', 'usuario_id').catch(() => {});
       await agregarIndiceSiFalta('reportes', 'idx_reportes_fecha', 'fecha_creacion').catch(() => {});
