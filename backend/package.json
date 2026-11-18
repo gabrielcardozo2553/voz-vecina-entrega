@@ -6,6 +6,8 @@
   "scripts": {
     "test": "node --test",
     "start": "node index.js",
+    "preparar": "node scripts/preparar.js",
+    "demo": "node scripts/datos-demo.js",
     "backup": "node scripts/backup.js",
     "claves-push": "node scripts/claves-push.js"
   },

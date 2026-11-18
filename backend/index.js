@@ -7,6 +7,7 @@ const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const pushRoutes = require('./routes/push');
 const { prepararBaseDeDatos } = require('./config/migraciones');
+const { asegurarBaseDeDatos } = require('./config/crearBase');
 const db = require('./config/db');
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16 || process.env.JWT_SECRET === 'tu_clave_secreta_aqui') {
@@ -107,7 +108,7 @@ app.use((err, req, res, next) => {
   res.status(estado).json({ error: estado === 500 ? 'Error interno del servidor' : 'Solicitud inválida' });
 });
 
-const PORT = process.env.PORT || 2000;
+const PORT = process.env.PORT || 3000;
 // Si defines ADMIN_EMAIL en .env y esa cuenta ya existe con el correo confirmado, pasa a ser administradora.
 async function promoverAdministrador() {
   const correo = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
@@ -119,7 +120,8 @@ async function promoverAdministrador() {
   if (res.affectedRows > 0) console.log(`La cuenta ${correo} ahora es administradora`);
 }
 
-prepararBaseDeDatos()
+asegurarBaseDeDatos()
+  .then(prepararBaseDeDatos)
   .then(promoverAdministrador)
   .catch(() => {})
   .finally(() => {

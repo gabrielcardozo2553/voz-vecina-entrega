@@ -12,34 +12,29 @@ Aplicación web para que los vecinos reporten problemas de su localidad a la Mun
 
 **Administrador:** ver y filtrar todos los reportes, cambiar su estado, asignar responsable, anotar notas internas, ver posibles repetidos y el historial de cambios, escribirle al vecino (con fotos), actuar sobre varios reportes a la vez y exportar a Excel o PDF con resumen y gráficos.
 
-## Puesta en marcha
+## Puesta en marcha rápida
 
-Necesitas Node.js 20 o superior y MySQL funcionando con la base `reportes_vecinales`.
+Necesitas **Node.js 20+** y **MySQL/MariaDB encendido** (por ejemplo, WampServer o XAMPP). Desde la carpeta del proyecto:
 
-1. **Backend**
-   ```
-   cd backend
-   npm install
-   ```
-   Copia `.env.example` como `.env` y completa los valores. Para `JWT_SECRET` usa una clave larga y aleatoria:
-   ```
-   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-   ```
-   Luego inicia el servidor (puerto 3000 por defecto):
-   ```
-   node index.js
-   ```
-   Al arrancar, el servidor agrega solo las columnas, tablas e índices que falten.
+```
+npm run instalar     # instala backend y frontend
+npm run preparar     # crea backend/.env con una clave aleatoria
+npm run demo         # crea la base, las tablas, cuentas de prueba y reportes de ejemplo
+npm run iniciar      # compila el frontend y abre todo en http://localhost:3000
+```
 
-2. **Frontend** (en otra terminal)
-   ```
-   cd frontend
-   npm install
-   npm run dev
-   ```
-   Se abre en http://localhost:5173. Las rutas `/api` y `/uploads` se redirigen solas al backend.
+Cuentas de demostración (se crean con `npm run demo`):
 
-3. **Cuenta de administrador:** se crea registrándose en la app y cambiando el campo `rol` de ese usuario a `admin` en la tabla `usuarios`.
+| Rol | Correo | Contraseña |
+|---|---|---|
+| Administrador | `admin@example.com` | `Admin2026!` |
+| Vecino | `ana@example.com` | `Vecino2026!` |
+
+📘 **Guía completa para instalar y evaluar:** [`docs/INSTALACION.md`](docs/INSTALACION.md) · 🏗️ **Arquitectura, base de datos y API:** [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) · 🧪 **Pruebas:** `npm test`
+
+En modo desarrollo (dos terminales): `npm run dev:backend` y `npm run dev:frontend` (web en http://localhost:5173).
+
+Para hacer administradora a otra cuenta real, define `ADMIN_EMAIL` en `backend/.env` (la cuenta debe tener el correo confirmado).
 
 ## Versión para usar (un solo puerto)
 
@@ -114,3 +109,9 @@ frontend/src/
   utils/              lógica de apoyo (prioridad, duplicados, exportación)
   styles/             estilos
 ```
+
+## Autor
+
+Gabriel Alejandro Cardozo — Tecnicatura en Desarrollo de Software.
+
+Versión en línea: https://voz-vecinal.onrender.com
