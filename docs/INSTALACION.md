@@ -10,7 +10,7 @@ Esta guía deja Voz Vecinal funcionando en una PC con Windows (en Linux o Mac es
 | MySQL o MariaDB | MySQL 8 / MariaDB 10.x | Base de datos. Sirve el que trae [WampServer](https://www.wampserver.com) o [XAMPP](https://www.apachefriends.org) |
 | Git (opcional) | cualquiera | Para clonar. También se puede descargar el ZIP desde GitHub |
 
-No hace falta crear la base de datos ni las tablas a mano: el proyecto las crea solo.
+No hace falta crear la base de datos ni las tablas a mano: el proyecto las crea solo. Si prefieres importar el script a mano (por ejemplo con phpMyAdmin de XAMPP), está en `database/proyecto.sql` y los pasos están en el [README](../README.md#1-base-de-datos-importar-databaseproyectosql).
 
 ## 2. Descargar el proyecto
 

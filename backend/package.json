@@ -8,6 +8,7 @@
     "start": "node index.js",
     "preparar": "node scripts/preparar.js",
     "demo": "node scripts/datos-demo.js",
+    "exportar-sql": "node scripts/exportar-sql.js",
     "backup": "node scripts/backup.js",
     "claves-push": "node scripts/claves-push.js"
   },

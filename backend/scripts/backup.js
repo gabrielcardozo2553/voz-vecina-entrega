@@ -13,22 +13,43 @@ const LOTE = 200;
 
 const comillas = (nombre) => `\`${String(nombre).replace(/`/g, '``')}\``;
 
+// Deja una sentencia CREATE TABLE que sirva tanto en MySQL como en MariaDB (XAMPP):
+// quita los "COLLATE" propios de MySQL 8 (utf8mb4_0900_ai_ci) y otros detalles que MariaDB no entiende.
+function limpiarCrearTabla(sql) {
+  return sql
+    .replace(/\s+COLLATE(?:\s*=\s*|\s+)'?[A-Za-z0-9_]+'?/g, '')
+    .replace(/\s+AUTO_INCREMENT=\d+/g, '')
+    .replace(/\s+ROW_FORMAT=\w+/g, '')
+    .replace(/\s+\/\*!\d+[^*]*\*\//g, '');
+}
+
 // Arma el texto SQL de toda la base. "consultar" es una función (sql) => Promise<filas>.
-async function generarDump(consultar, nombreBase) {
-  const partes = [
-    `-- Copia de seguridad de ${nombreBase}`,
-    `-- Generada el ${new Date().toISOString()}`,
-    'SET FOREIGN_KEY_CHECKS=0;',
-    "SET NAMES utf8mb4;",
-    '',
-  ];
+// Con { portable: true } genera el script para entregar: crea la base si no existe y es compatible con MariaDB.
+async function generarDump(consultar, nombreBase, { portable = false, titulo } = {}) {
+  const partes = portable
+    ? [
+        `-- ${titulo || nombreBase}`,
+        '-- Para importar: phpMyAdmin → Importar, o por consola:  mysql -u root < proyecto.sql',
+        `CREATE DATABASE IF NOT EXISTS ${comillas(nombreBase)} DEFAULT CHARACTER SET utf8mb4;`,
+        `USE ${comillas(nombreBase)};`,
+        'SET FOREIGN_KEY_CHECKS=0;',
+        'SET NAMES utf8mb4;',
+        '',
+      ]
+    : [
+        `-- Copia de seguridad de ${nombreBase}`,
+        `-- Generada el ${new Date().toISOString()}`,
+        'SET FOREIGN_KEY_CHECKS=0;',
+        'SET NAMES utf8mb4;',
+        '',
+      ];
 
   const tablas = (await consultar('SHOW FULL TABLES WHERE Table_type = "BASE TABLE"')).map((f) => Object.values(f)[0]);
 
   for (const tabla of tablas) {
     const [crear] = await consultar(`SHOW CREATE TABLE ${comillas(tabla)}`);
     partes.push(`DROP TABLE IF EXISTS ${comillas(tabla)};`);
-    partes.push(`${crear['Create Table']};`);
+    partes.push(`${portable ? limpiarCrearTabla(crear['Create Table']) : crear['Create Table']};`);
 
     const filas = await consultar(`SELECT * FROM ${comillas(tabla)}`);
     if (filas.length) {
@@ -89,4 +110,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { generarDump, sello };
+module.exports = { generarDump, limpiarCrearTabla, sello };

@@ -16,6 +16,8 @@ frontend/dist/
 
 # Backups de base de datos (pueden tener datos reales de usuarios)
 *.sql
+# Excepción: el script de la base de entrega solo tiene datos de demostración
+!database/proyecto.sql
 
 # Sistema, editor y logs
 .DS_Store

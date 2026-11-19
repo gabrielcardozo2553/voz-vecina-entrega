@@ -27,11 +27,7 @@ const REPORTES = [
   ['luis', 'Alumbrado público', 'Poste con cables sueltos.', 'Calle Urquiza 77', -29.1758, -56.6481, 'en_proceso', 7],
 ];
 
-async function main() {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('Este script es solo para demostración: no se ejecuta con NODE_ENV=production.');
-    process.exit(1);
-  }
+async function cargarDatosDemo() {
   await asegurarBaseDeDatos();
   await prepararBaseDeDatos();
 
@@ -81,11 +77,23 @@ async function main() {
   console.log('  Administrador:  admin@example.com  /  Admin2026!');
   console.log('  Vecino:         ana@example.com    /  Vecino2026!');
   console.log('  Vecino:         luis@example.com   /  Vecino2026!');
+}
+
+async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Este script es solo para demostración: no se ejecuta con NODE_ENV=production.');
+    process.exit(1);
+  }
+  await cargarDatosDemo();
   await db.end();
 }
 
-main().catch((error) => {
-  console.error('No se pudieron cargar los datos de demostración:', error.message || error.code);
-  console.error('Revisa que MySQL esté encendido y que backend/.env tenga los datos correctos (DB_HOST, DB_USER, DB_PASSWORD).');
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('No se pudieron cargar los datos de demostración:', error.message || error.code);
+    console.error('Revisa que MySQL esté encendido y que backend/.env tenga los datos correctos (DB_HOST, DB_USER, DB_PASSWORD).');
+    process.exit(1);
+  });
+}
+
+module.exports = { cargarDatosDemo, CUENTAS };
