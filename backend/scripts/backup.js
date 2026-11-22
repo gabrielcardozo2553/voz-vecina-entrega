@@ -20,6 +20,7 @@ function limpiarCrearTabla(sql) {
     .replace(/\s+COLLATE(?:\s*=\s*|\s+)'?[A-Za-z0-9_]+'?/g, '')
     .replace(/\s+AUTO_INCREMENT=\d+/g, '')
     .replace(/\s+ROW_FORMAT=\w+/g, '')
+    .replace(/ENGINE=\w+/, 'ENGINE=InnoDB') // mismo motor que producción, sea cual sea el del servidor local
     .replace(/\s+\/\*!\d+[^*]*\*\//g, '');
 }
 

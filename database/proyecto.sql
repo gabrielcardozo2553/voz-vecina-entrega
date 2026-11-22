@@ -9,7 +9,7 @@ CREATE TABLE `categorias` (
   `id` int NOT NULL AUTO_INCREMENT,
   `nombre` varchar(100) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 INSERT INTO `categorias` (`id`, `nombre`) VALUES (1, 'Baches'), (2, 'Alumbrado público'), (3, 'Basura / Limpieza'), (4, 'Animales sueltos'), (5, 'Inundaciones'), (6, 'Tránsito / Señales'), (7, 'Espacios verdes'), (8, 'Vandalismo'), (9, 'Otros');
 
 DROP TABLE IF EXISTS `historial_reportes`;
@@ -22,7 +22,7 @@ CREATE TABLE `historial_reportes` (
   `fecha` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_historial_reporte` (`reporte_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 INSERT INTO `historial_reportes` (`id`, `reporte_id`, `usuario_nombre`, `accion`, `detalle`, `fecha`) VALUES (1, 2, 'Administración', 'estado', 'Pendiente → En proceso', '2026-11-20 14:34:18.000'), (2, 4, 'Administración', 'estado', 'Pendiente → Resuelto', '2026-11-20 14:34:18.000'), (3, 5, 'Administración', 'estado', 'Pendiente → En proceso', '2026-11-20 14:34:18.000'), (4, 7, 'Administración', 'estado', 'Pendiente → Resuelto', '2026-11-20 14:34:18.000'), (5, 9, 'Administración', 'estado', 'Pendiente → Resuelto', '2026-11-20 14:34:18.000'), (6, 10, 'Administración', 'estado', 'Pendiente → En proceso', '2026-11-20 14:34:18.000');
 
 DROP TABLE IF EXISTS `mensajes_reporte`;
@@ -36,7 +36,7 @@ CREATE TABLE `mensajes_reporte` (
   `foto_url` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_mensajes_reporte` (`reporte_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `notificaciones`;
 CREATE TABLE `notificaciones` (
@@ -49,7 +49,7 @@ CREATE TABLE `notificaciones` (
   `fecha` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_notificaciones_usuario` (`usuario_id`,`leida`,`fecha`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `recuperaciones`;
 CREATE TABLE `recuperaciones` (
@@ -61,7 +61,7 @@ CREATE TABLE `recuperaciones` (
   `ultimo_envio` datetime NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_recuperaciones_email` (`email`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `registros_pendientes`;
 CREATE TABLE `registros_pendientes` (
@@ -74,7 +74,7 @@ CREATE TABLE `registros_pendientes` (
   `ultimo_envio` datetime NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_pendientes_email` (`email`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `reportes`;
 CREATE TABLE `reportes` (
@@ -96,7 +96,7 @@ CREATE TABLE `reportes` (
   PRIMARY KEY (`id`),
   KEY `idx_reportes_usuario` (`usuario_id`),
   KEY `idx_reportes_fecha` (`fecha_creacion`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 INSERT INTO `reportes` (`id`, `usuario_id`, `categoria_id`, `descripcion`, `foto_url`, `direccion`, `latitud`, `longitud`, `estado`, `fecha_creacion`, `fecha_resolucion`, `responsable`, `notas_internas`, `categoria_otro`, `miniatura_url`) VALUES (1, 2, 1, '[DEMO] Bache grande en la calzada, ya rompió una cubierta.', NULL, 'Av. San Martín 450', '-29.17920000', '-56.64310000', 'pendiente', '2026-11-18 14:34:18.000', NULL, NULL, NULL, NULL, NULL), (2, 3, 2, '[DEMO] La luminaria de la esquina lleva una semana apagada.', NULL, 'Calle Belgrano 120', '-29.18010000', '-56.64620000', 'en_proceso', '2026-11-14 14:34:18.000', NULL, NULL, NULL, NULL, NULL), (3, 2, 3, '[DEMO] Basural acumulado junto a la plaza.', NULL, 'Plaza principal', '-29.17750000', '-56.64490000', 'pendiente', '2026-11-17 14:34:18.000', NULL, NULL, NULL, NULL, NULL), (4, 3, 4, '[DEMO] Perros sueltos en la zona de la escuela.', NULL, 'Calle Mitre 310', '-29.18120000', '-56.64180000', 'resuelto', '2026-11-05 14:34:18.000', '2026-11-10 14:34:18.000', NULL, NULL, NULL, NULL), (5, 2, 5, '[DEMO] Se junta agua en la esquina cuando llueve.', NULL, 'Calle Sarmiento 88', '-29.17860000', '-56.64750000', 'en_proceso', '2026-11-11 14:34:18.000', NULL, NULL, NULL, NULL, NULL), (6, 3, 6, '[DEMO] Falta el cartel de PARE.', NULL, 'Av. Libertad y Rivadavia', '-29.17690000', '-56.64020000', 'pendiente', '2026-11-19 14:34:18.000', NULL, NULL, NULL, NULL, NULL), (7, 2, 7, '[DEMO] Pasto muy alto en la plazoleta del barrio.', NULL, 'Barrio Norte', '-29.17400000', '-56.64400000', 'resuelto', '2026-11-02 14:34:18.000', '2026-11-07 14:34:18.000', NULL, NULL, NULL, NULL), (8, 3, 8, '[DEMO] Pintadas en el frente del salón comunitario.', NULL, 'Calle Moreno 205', '-29.18220000', '-56.64550000', 'pendiente', '2026-11-16 14:34:18.000', NULL, NULL, NULL, NULL, NULL), (9, 2, 1, '[DEMO] Pozo en la entrada del barrio.', NULL, 'Acceso sur', '-29.18350000', '-56.64300000', 'resuelto', '2026-10-31 14:34:18.000', '2026-11-05 14:34:18.000', NULL, NULL, NULL, NULL), (10, 3, 2, '[DEMO] Poste con cables sueltos.', NULL, 'Calle Urquiza 77', '-29.17580000', '-56.64810000', 'en_proceso', '2026-11-13 14:34:18.000', NULL, NULL, NULL, NULL, NULL);
 
 DROP TABLE IF EXISTS `suscripciones_push`;
@@ -111,7 +111,7 @@ CREATE TABLE `suscripciones_push` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_push_endpoint` (`endpoint_hash`),
   KEY `idx_push_usuario` (`usuario_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `usuarios`;
 CREATE TABLE `usuarios` (
@@ -134,7 +134,7 @@ CREATE TABLE `usuarios` (
   UNIQUE KEY `uq_usuarios_dni_hash` (`dni_hash`),
   UNIQUE KEY `uq_usuarios_google` (`google_id`),
   UNIQUE KEY `uq_usuarios_facebook` (`facebook_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 INSERT INTO `usuarios` (`id`, `nombre`, `apellido`, `dni`, `email`, `password`, `rol`, `consentimiento_fecha`, `email_verificado`, `google_id`, `facebook_id`, `sesion_desde`, `dni_hash`) VALUES (1, 'Administración', 'Municipal', '10000001', 'admin@example.com', '$2b$10$0ckFDzbdppA3jVxG2a1WwOaOgPVBKECh9mQFu3LXRFdAl7JWS0P76', 'admin', '2026-11-20 14:34:18.000', 1, NULL, NULL, NULL, NULL), (2, 'Ana', 'Gómez', '20000002', 'ana@example.com', '$2b$10$jFGC6/qesUT8SgfVvhkmQ.abC9WrvNlFiieOuyfMXM3aVsmgth/hK', 'vecino', '2026-11-20 14:34:18.000', 1, NULL, NULL, NULL, NULL), (3, 'Luis', 'Pérez', '20000003', 'luis@example.com', '$2b$10$BJh6Bsts19.7wjF3eyhSfOFLNheWoBdXSD5smideC/POBAl2IyjMa', 'vecino', '2026-11-20 14:34:18.000', 1, NULL, NULL, NULL, NULL);
 
 SET FOREIGN_KEY_CHECKS=1;

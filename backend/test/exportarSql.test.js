@@ -12,6 +12,12 @@ test('quita lo que MariaDB (XAMPP) no entiende', () => {
   assert.ok(limpio.endsWith('DEFAULT CHARSET=utf8mb4'));
 });
 
+test('fuerza InnoDB aunque el servidor local use MyISAM', () => {
+  const limpio = limpiarCrearTabla(MYSQL8.replace('InnoDB', 'MyISAM'));
+  assert.match(limpio, /ENGINE=InnoDB/);
+  assert.ok(!/MyISAM/.test(limpio));
+});
+
 test('el script portable crea la base, la usa y es compatible', async () => {
   const consultas = [];
   const consultar = async (sql) => {
